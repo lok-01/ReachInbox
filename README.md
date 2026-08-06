@@ -4,14 +4,14 @@ A production-grade, highly-resilient, and scalable email scheduling and monitori
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 - **Backend**: Node.js, Express.js, TypeScript, Prisma (ORM), BullMQ, Redis (`ioredis`), Nodemailer
 - **Frontend**: React (Vite), TypeScript, Tailwind CSS v4, Axios, `@react-oauth/google`
 - **Database**: MySQL, Redis
 
 ---
 
-## ⚙️ Environment Configuration
+##  Environment Configuration
 
 ### Backend Env (`backend/.env`)
 Create a `.env` file inside the `backend` folder:
