@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String          @id @default(uuid())
+  email     String          @unique
+  name      String
+  avatar    String?
+  campaigns EmailCampaign[]
+  createdAt DateTime        @default(now())
+}
+
+model Sender {
+  id        String     @id @default(uuid())
+  email     String     @unique
+  name      String
+  host      String
+  port      Int
+  user      String
+  pass      String
+  createdAt DateTime   @default(now())
+  emailJobs EmailJob[]
+}
+
+model EmailCampaign {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject      String
+  body         String     @db.Text
+  startTime    DateTime
+  delaySeconds Int        @default(2)
+  hourlyLimit  Int        @default(100)
+  createdAt    DateTime   @default(now())
+  emailJobs    EmailJob[]
+}
+
+enum JobStatus {
+  PENDING
+  SCHEDULED
+  SENT
+  FAILED
+  RATE_LIMITED
+}
+
+model EmailJob {
+  id          String        @id @default(uuid())
+  campaignId  String
+  campaign    EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      Sender        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   String
+  subject     String
+  body        String        @db.Text
+  status      JobStatus     @default(PENDING)
+  scheduledAt DateTime
+  sentAt      DateTime?
+  error       String?       @db.Text
+  createdAt   DateTime      @default(now())
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([campaignId])
+}
