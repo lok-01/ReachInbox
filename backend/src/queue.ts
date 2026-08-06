@@ -28,9 +28,9 @@ export const emailQueue = new Queue(QUEUE_NAME, {
 // -------------------------------------------------------------------
 // Rate-limit helper using Redis INCR with hourly windows
 // -------------------------------------------------------------------
-async function checkAndIncrRateLimit(senderId: string, hourlyLimit: number): Promise<boolean> {
+async function checkAndIncrRateLimit(senderId: string, campaignId: string, hourlyLimit: number): Promise<boolean> {
   const now = new Date();
-  const hourKey = `rate_limit:${senderId}:${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}-${String(now.getUTCHours()).padStart(2, '0')}`;
+  const hourKey = `rate_limit:${senderId}:${campaignId}:${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}-${String(now.getUTCHours()).padStart(2, '0')}`;
 
   // INCR is atomic – safe across multiple workers
   const current = await redis.incr(hourKey);
@@ -98,7 +98,7 @@ export function startWorker(): Worker {
       const hourlyLimit = emailJob.campaign?.hourlyLimit ?? DEFAULT_HOURLY_LIMIT;
 
       // ---- Rate limit check ----
-      const allowed = await checkAndIncrRateLimit(emailJob.senderId, hourlyLimit);
+      const allowed = await checkAndIncrRateLimit(emailJob.senderId, emailJob.campaignId, hourlyLimit);
 
       if (!allowed) {
         const delayMs = msUntilNextHour();
