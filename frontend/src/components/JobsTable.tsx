@@ -80,11 +80,24 @@ const JobsTable: React.FC<JobsTableProps> = ({
                   </div>
 
                   {/* Status / Date Badge */}
-                  <div className="shrink-0 flex items-center">
+                  <div className="shrink-0 flex items-center gap-2">
                     {isScheduled ? (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFF3E0] text-[#E65100]">
-                        {formatFigmaDate(job.scheduledAt)}
-                      </span>
+                      <>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide ${
+                          job.status === 'PENDING' ? 'bg-amber-50 text-amber-600 animate-pulse' :
+                          job.status === 'SCHEDULED' ? 'bg-blue-50 text-blue-600' :
+                          job.status === 'RATE_LIMITED' ? 'bg-violet-50 text-violet-600' :
+                          'bg-slate-100 text-slate-500'
+                        }`}>
+                          {job.status === 'PENDING' ? 'Sending…' :
+                           job.status === 'SCHEDULED' ? 'Scheduled' :
+                           job.status === 'RATE_LIMITED' ? 'Queued' :
+                           job.status}
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFF3E0] text-[#E65100]">
+                          {formatFigmaDate(job.scheduledAt)}
+                        </span>
+                      </>
                     ) : job.status === 'FAILED' ? (
                       <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600">
                         Failed
