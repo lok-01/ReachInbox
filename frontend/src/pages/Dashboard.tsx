@@ -53,6 +53,8 @@ const Dashboard: React.FC = () => {
   const [composeOpen, setComposeOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJob, setSelectedJob] = useState<EmailJob | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState<boolean>(false);
 
   const [scheduledJobs, setScheduledJobs] = useState<EmailJob[]>([]);
   const [scheduledPagination, setScheduledPagination] = useState<Pagination | null>(null);
@@ -172,16 +174,34 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Filter jobs based on search query
-  const filteredScheduledJobs = scheduledJobs.filter((job) =>
-    job.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter jobs based on search query and status filter
+  const filteredScheduledJobs = scheduledJobs.filter((job) => {
+    const matchesSearch = job.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          job.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'pending') return job.status === 'PENDING' || job.status === 'SCHEDULED';
+    if (statusFilter === 'rate_limited') return job.status === 'RATE_LIMITED';
+    if (statusFilter === 'sent') return job.status === 'SENT';
+    if (statusFilter === 'failed') return job.status === 'FAILED';
+    return true;
+  });
 
-  const filteredSentJobs = sentJobs.filter((job) =>
-    job.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    job.subject.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredSentJobs = sentJobs.filter((job) => {
+    const matchesSearch = job.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          job.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+
+    if (statusFilter === 'all') return true;
+    if (statusFilter === 'pending') return job.status === 'PENDING' || job.status === 'SCHEDULED';
+    if (statusFilter === 'rate_limited') return job.status === 'RATE_LIMITED';
+    if (statusFilter === 'sent') return job.status === 'SENT';
+    if (statusFilter === 'failed') return job.status === 'FAILED';
+    return true;
+  });
+
+
 
   const totalScheduledCount = (stats.PENDING ?? 0) + (stats.SCHEDULED ?? 0) + (stats.RATE_LIMITED ?? 0);
   const totalSentCount = (stats.SENT ?? 0) + (stats.FAILED ?? 0);
@@ -323,13 +343,62 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Toolbar Controls */}
-                <div className="flex items-center gap-3 pl-3">
+                <div className="flex items-center gap-3 pl-3 relative">
                   <button
-                    title="Filter"
-                    className="p-2 text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                    onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                    title="Filter by Status"
+                    className={`p-2 border rounded-lg transition-colors ${statusFilter !== 'all' ? 'text-[#2E7D32] border-emerald-200 bg-emerald-50' : 'text-slate-400 hover:text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                   >
                     <Sliders className="w-4 h-4" />
                   </button>
+
+                  {/* Filter Dropdown Popover */}
+                  {filterDropdownOpen && (
+                    <div className="absolute right-0 top-11 w-48 bg-white border border-slate-100 rounded-xl shadow-lg py-1.5 z-20 animate-fade-in font-sans">
+                      <div className="px-3 py-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-wider">Filter by Status</div>
+                      
+                      <button
+                        onClick={() => { setStatusFilter('all'); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${statusFilter === 'all' ? 'text-[#2E7D32] bg-emerald-50 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        <span>Show All</span>
+                        {statusFilter === 'all' && <Check className="w-3.5 h-3.5 text-[#2E7D32]" />}
+                      </button>
+
+                      <button
+                        onClick={() => { setStatusFilter('pending'); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${statusFilter === 'pending' ? 'text-[#2E7D32] bg-emerald-50 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        <span>Scheduled / Pending</span>
+                        {statusFilter === 'pending' && <Check className="w-3.5 h-3.5 text-[#2E7D32]" />}
+                      </button>
+
+                      <button
+                        onClick={() => { setStatusFilter('sent'); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${statusFilter === 'sent' ? 'text-[#2E7D32] bg-emerald-50 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        <span>Sent</span>
+                        {statusFilter === 'sent' && <Check className="w-3.5 h-3.5 text-[#2E7D32]" />}
+                      </button>
+
+                      <button
+                        onClick={() => { setStatusFilter('failed'); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${statusFilter === 'failed' ? 'text-[#2E7D32] bg-emerald-50 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        <span>Failed</span>
+                        {statusFilter === 'failed' && <Check className="w-3.5 h-3.5 text-[#2E7D32]" />}
+                      </button>
+
+                      <button
+                        onClick={() => { setStatusFilter('rate_limited'); setFilterDropdownOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-xs transition-colors flex items-center justify-between ${statusFilter === 'rate_limited' ? 'text-[#2E7D32] bg-emerald-50 font-semibold' : 'text-slate-600 hover:bg-slate-50'}`}
+                      >
+                        <span>Rate Limited</span>
+                        {statusFilter === 'rate_limited' && <Check className="w-3.5 h-3.5 text-[#2E7D32]" />}
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     onClick={handleRefresh}
                     title="Refresh"
