@@ -6,7 +6,7 @@ A production-grade, highly-resilient, and scalable email scheduling and monitori
 
 ## 🌐 Live Demo
 
-- **Frontend (Vercel)**: [https://reachinbox1.vercel.app](https://reachinbox2.vercel.app)
+- **Frontend (Vercel)**: [https://reachinboxx-inky.vercel.app/](https://reachinboxx-inky.vercel.app/)
 - **Backend (Railway)**: [https://reachinbox-production-534a.up.railway.app](https://reachinbox-production-534a.up.railway.app)
 
 ---
