@@ -6,7 +6,7 @@ A production-grade, highly-resilient, and scalable email scheduling and monitori
 
 ## 🌐 Live Demo
 
-- **Frontend (Vercel)**: [https://reachinbox1.vercel.app](https://reachinbox1.vercel.app)
+- **Frontend (Vercel)**: [https://reachinbox1.vercel.app](https://reachinbox2.vercel.app)
 - **Backend (Railway)**: [https://reachinbox-production-534a.up.railway.app](https://reachinbox-production-534a.up.railway.app)
 
 ---
@@ -54,7 +54,7 @@ VITE_API_BASE="http://localhost:4000/api"
 
 ---
 
-## 🚀 How to Run the Project
+##  How to Run the Project
 
 ### 1. Run Databases
 Ensure **MySQL** (port `3306`) and **Redis** (port `6379`) are running locally.
@@ -77,7 +77,7 @@ Open **`http://localhost:5173`** in your browser.
 
 ---
 
-## 📬 How to Set Up Ethereal Email (SMTP Sandbox)
+##  How to Set Up Ethereal Email (SMTP Sandbox)
 * **Auto-Generation (Recommended)**: In the frontend Compose Modal, click **`+ Add Sender`**. The backend will automatically generate a new Ethereal test account via Nodemailer APIs in one click, insert it into the database, and select it.
 * **Manual Setup**: If you wish to use a specific Ethereal account, register at [ethereal.email](https://ethereal.email), copy your username/password, and insert it via the database or API.
 * **Viewing Sent Emails**: Open your backend terminal log. When an email is sent, a preview link like `https://ethereal.email/message/d1a2b3...` is logged. Control+Click the link to view the rendered email.
@@ -109,7 +109,7 @@ To ensure no emails are lost if the server crashes or restarts:
 
 ---
 
-## 📋 Features Implemented
+## Features Implemented
 
 ### Backend
 - **Core Scheduler**: Persistent BullMQ + Redis job runner (no cron).
@@ -124,7 +124,7 @@ To ensure no emails are lost if the server crashes or restarts:
 - **Google OAuth Login**: Authentic verification rendering name, email, and avatar inside the sidebar header.
 - **Overview Dashboard**: Analytics landing page with stat cards (Scheduled Queue, Delivered, Failed, Rate Limited), a delivery efficiency progress bar with success rate percentage, quick action buttons, and a recent campaign activity stream.
 - **Staggered Email Composer**: Full-page compose modal with rich text editor (Bold, Italic, Underline, Lists), inline image insertion, file attachment cards with thumbnails, CSV/TXT lead list upload with email tag pills, Send Later scheduling with time presets, and configurable delay/hourly limit controls.
-- **Draggable Split Pane (LeetCode-style)**: The email list and detail view panels are separated by a draggable resizer handle, allowing users to freely adjust the width of each pane by dragging left or right.
+- **Draggable Split Pane**: The email list and detail view panels are separated by a draggable resizer handle, allowing users to freely adjust the width of each pane by dragging left or right.
 - **Dynamic Status Labels**: Each email row displays a clear status label — **Scheduled** (blue, for future jobs), **Sending…** (amber with pulse animation, for jobs past their scheduled time), **Queued** (violet, for rate-limited jobs), **Sent** (green), or **Failed** (red).
 - **Interactive Status Filters**: Dropdown filter next to the search bar allowing users to filter the email list by status (Show All, Scheduled/Pending, Sent, Failed, Rate Limited).
 - **Real-Time Refresh**: Auto-refresh every 15 seconds with a manual Refresh button. Selected thread details update in place without losing context.
