@@ -1,5 +1,4 @@
-import React from 'react';
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star, Mail } from 'lucide-react';
 import type { EmailJob, Pagination } from '../types';
 
 interface JobsTableProps {
@@ -47,9 +46,17 @@ const JobsTable: React.FC<JobsTableProps> = ({
             </div>
           ))
         ) : jobs.length === 0 ? (
-          // Empty State
-          <div className="py-16 text-center text-slate-400">
-            {type === 'scheduled' ? 'No scheduled emails' : 'No sent emails'}
+          // Empty State Mockup
+          <div className="flex flex-col items-center justify-center py-24 px-6 text-center animate-fade-in">
+            <div className="w-12 h-12 rounded-full bg-slate-50 border border-slate-100/50 flex items-center justify-center text-slate-300 mb-4 shadow-sm shadow-slate-100/20">
+              <Mail className="w-5 h-5 text-slate-400" />
+            </div>
+            <p className="text-sm font-bold text-slate-700">No campaigns found</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-[260px] leading-relaxed">
+              {type === 'scheduled' 
+                ? 'Your scheduled queues are empty. Click "Compose" to schedule a new email campaign.'
+                : 'You have not sent any emails yet. Once scheduled campaigns are processed, they will appear here.'}
+            </p>
           </div>
         ) : (
           jobs.map((job) => {

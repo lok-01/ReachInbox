@@ -55,6 +55,18 @@ const Dashboard: React.FC = () => {
   const [selectedJob, setSelectedJob] = useState<EmailJob | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [filterDropdownOpen, setFilterDropdownOpen] = useState<boolean>(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success',
+  });
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 4000);
+  }, []);
 
   const [scheduledJobs, setScheduledJobs] = useState<EmailJob[]>([]);
   const [scheduledPagination, setScheduledPagination] = useState<Pagination | null>(null);
@@ -157,8 +169,12 @@ const Dashboard: React.FC = () => {
     fetchSent(page);
   };
 
-  const handleComposeSuccess = () => {
+  const handleComposeSuccess = (leadsCount?: number) => {
     setComposeOpen(false);
+    showToast(
+      `Campaign scheduled successfully! ${leadsCount && leadsCount > 0 ? `${leadsCount} leads queued.` : ''}`,
+      'success'
+    );
     setTimeout(() => {
       fetchScheduled(1);
       fetchStats();
@@ -594,6 +610,14 @@ const Dashboard: React.FC = () => {
         )}
       </main>
     </div>
+
+    {/* Toast Notification Popover */}
+    {toast.show && (
+      <div className={`fixed bottom-6 right-6 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-semibold font-sans animate-slide-up z-50 transition-all ${toast.type === 'success' ? 'bg-[#E8F5E9] border-emerald-100 text-[#2E7D32]' : 'bg-red-50 border-red-100 text-red-600'}`}>
+        {toast.type === 'success' ? <CheckCircle className="w-4.5 h-4.5 text-[#2E7D32]" /> : <AlertTriangle className="w-4.5 h-4.5 text-red-600" />}
+        <span>{toast.message}</span>
+      </div>
+    )}
   );
 };
 

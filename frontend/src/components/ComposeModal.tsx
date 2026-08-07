@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 interface ComposeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (leadsCount?: number) => void;
 }
 
 interface FormState {
@@ -233,8 +233,8 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
         formData.append('manualLeads', parsedEmails.join(','));
       }
 
-      await api.scheduleCampaign(formData);
-      onSuccess();
+      const res = await api.scheduleCampaign(formData);
+      onSuccess(res.leadsCount);
       handleClose();
     } catch (err: unknown) {
       const msg =
