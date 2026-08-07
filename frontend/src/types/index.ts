@@ -20,6 +20,7 @@ export interface EmailJob {
   id: string;
   recipient: string;
   subject: string;
+  body?: string;
   status: JobStatus;
   scheduledAt: string;
   sentAt?: string;

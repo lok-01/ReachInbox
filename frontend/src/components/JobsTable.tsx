@@ -77,7 +77,7 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs, loading, pagination, onPage
                   <div className="flex-1 min-w-0 text-sm">
                     <span className="font-semibold text-slate-800">{job.subject}</span>
                     <span className="text-slate-400 font-normal truncate">
-                      {' — '}{job.body.replace(/<[^>]*>/g, '') || (job.error ? `Error: ${job.error}` : 'No content')}
+                      {' — '}{(job.body || '').replace(/<[^>]*>/g, '') || (job.error ? `Error: ${job.error}` : 'No content')}
                     </span>
                   </div>
                 </div>
