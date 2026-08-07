@@ -474,7 +474,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
             <div
               ref={editorRef}
               contentEditable
-              placeholder="Type Your Reply..."
+              {...({ placeholder: "Type Your Reply..." } as any)}
               className="flex-1 p-4 bg-transparent text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none overflow-y-auto select-text font-sans"
               style={{ minHeight: '220px' }}
             />
