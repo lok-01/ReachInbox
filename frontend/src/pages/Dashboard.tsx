@@ -230,10 +230,13 @@ const Dashboard: React.FC = () => {
     <div className="flex min-h-screen bg-white text-slate-800 font-sans select-none">
       {/* 1. Left Sidebar Navigation Panel */}
       <aside className="w-64 bg-[#FCFCFD] border-r border-slate-100 flex flex-col p-5 shrink-0 select-none">
-        {/* Brand Logo "ONE" */}
-        <div className="h-10 flex items-center mb-6 px-1">
-          <span className="text-xl font-black text-black tracking-widest font-mono">
-            ONE
+        {/* Brand Logo "ReachInbox" */}
+        <div className="h-10 flex items-center mb-6 px-1 gap-2.5">
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <span className="text-white text-xs font-black">R</span>
+          </div>
+          <span className="text-base font-extrabold text-slate-800 tracking-tight font-sans">
+            ReachInbox
           </span>
         </div>
 
