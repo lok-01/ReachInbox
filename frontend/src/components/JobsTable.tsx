@@ -90,7 +90,7 @@ const JobsTable: React.FC<JobsTableProps> = ({
                         Failed
                       </span>
                     ) : (
-                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#E8F5E9] text-[#2E7D32]">
                         Sent
                       </span>
                     )}
