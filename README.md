@@ -4,10 +4,18 @@ A production-grade, highly-resilient, and scalable email scheduling and monitori
 
 ---
 
+## 🌐 Live Demo
+
+- **Frontend (Vercel)**: [https://reachinbox1.vercel.app](https://reachinbox1.vercel.app)
+- **Backend (Railway)**: [https://reachinbox-production-534a.up.railway.app](https://reachinbox-production-534a.up.railway.app)
+
+---
+
 ##  Tech Stack
 - **Backend**: Node.js, Express.js, TypeScript, Prisma (ORM), BullMQ, Redis (`ioredis`), Nodemailer
 - **Frontend**: React (Vite), TypeScript, Tailwind CSS v4, Axios, `@react-oauth/google`
 - **Database**: MySQL, Redis
+- **Deployment**: Vercel (Frontend), Railway (Backend + MySQL + Redis)
 
 ---
 
@@ -70,7 +78,7 @@ Open **`http://localhost:5173`** in your browser.
 ---
 
 ## 📬 How to Set Up Ethereal Email (SMTP Sandbox)
-* **Auto-Generation (Recommended)**: In the frontend Compose Modal, click **`+ Add Ethereal Test Sender`**. The backend will automatically generate a new Ethereal test account via Nodemailer APIs in one click, insert it into the database, and select it.
+* **Auto-Generation (Recommended)**: In the frontend Compose Modal, click **`+ Add Sender`**. The backend will automatically generate a new Ethereal test account via Nodemailer APIs in one click, insert it into the database, and select it.
 * **Manual Setup**: If you wish to use a specific Ethereal account, register at [ethereal.email](https://ethereal.email), copy your username/password, and insert it via the database or API.
 * **Viewing Sent Emails**: Open your backend terminal log. When an email is sent, a preview link like `https://ethereal.email/message/d1a2b3...` is logged. Control+Click the link to view the rendered email.
 
@@ -109,12 +117,21 @@ To ensure no emails are lost if the server crashes or restarts:
 - **Atomic Rate Limiter**: Shared Redis counter preventing SMTP lockout.
 - **Idempotency Protection**: Ensures duplicate sends are rejected.
 - **Ethereal Mailer**: Automated Nodemailer mock transport configurations.
+- **Single Job Details API**: `GET /api/jobs/:id` endpoint for real-time status polling of individual email threads.
+- **Google OAuth Authentication**: Server-side token verification with user profile extraction.
 
 ### Frontend
-- **Google OAuth Login**: Authentic verification rendering name, email, and avatar inside the header.
-- **Dynamic Stats Board**: Visual dashboard showing counts of Scheduled, Sent, Failed, and Rate-Limited emails.
-- **Staggered Email Composer**: Supports calendar schedules, throttle delays, hourly limits, and dynamic CSV/TXT lead list counters.
-- **Logs Table**: Automatic 15-second page refresh table with skeleton screens, status badges, and pagination.
+- **Google OAuth Login**: Authentic verification rendering name, email, and avatar inside the sidebar header.
+- **Overview Dashboard**: Analytics landing page with stat cards (Scheduled Queue, Delivered, Failed, Rate Limited), a delivery efficiency progress bar with success rate percentage, quick action buttons, and a recent campaign activity stream.
+- **Staggered Email Composer**: Full-page compose modal with rich text editor (Bold, Italic, Underline, Lists), inline image insertion, file attachment cards with thumbnails, CSV/TXT lead list upload with email tag pills, Send Later scheduling with time presets, and configurable delay/hourly limit controls.
+- **Draggable Split Pane (LeetCode-style)**: The email list and detail view panels are separated by a draggable resizer handle, allowing users to freely adjust the width of each pane by dragging left or right.
+- **Dynamic Status Labels**: Each email row displays a clear status label — **Scheduled** (blue, for future jobs), **Sending…** (amber with pulse animation, for jobs past their scheduled time), **Queued** (violet, for rate-limited jobs), **Sent** (green), or **Failed** (red).
+- **Interactive Status Filters**: Dropdown filter next to the search bar allowing users to filter the email list by status (Show All, Scheduled/Pending, Sent, Failed, Rate Limited).
+- **Real-Time Refresh**: Auto-refresh every 15 seconds with a manual Refresh button. Selected thread details update in place without losing context.
+- **Toast Notifications**: Success and error toast popups for campaign submissions and refresh actions.
+- **Empty States & Loading Skeletons**: Illustrated empty state placeholders and animated skeleton loaders for smooth UX during data fetching.
+- **Attachment Preview Cards**: Uploaded images render as premium thumbnail cards with filenames and file sizes, both inline in the editor and in the email detail view.
+- **Responsive Sidebar**: Clean sidebar with ReachInbox branding, user profile card with logout, Compose button, and navigation tabs (Overview, Scheduled, Sent) with live count badges.
 
 ---
 
@@ -123,3 +140,4 @@ To ensure no emails are lost if the server crashes or restarts:
 2. **SQLite vs. MySQL**: MySQL is used to leverage enterprise indexing and ACID transactional safety for logs.
 3. **Ethereal Inbox**: Used as the default fake SMTP sandbox. A real SMTP provider can be used by inserting SMTP host and credentials into the `Sender` table.
 4. **CSV Parsing**: The parser extracts all email matches from text files, avoiding formatting rigidity (e.g., handles commas, newlines, tabs automatically).
+5. **Inline Attachments**: Image attachments are stored as base64 data URLs within the email body HTML for simplicity. For production use, a cloud storage service (e.g., S3) would be preferred.
