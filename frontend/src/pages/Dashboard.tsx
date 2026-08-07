@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Clock, Send, RefreshCw, Sliders, LogOut, Plus, Search, X, CheckCircle, AlertTriangle, Calendar, Info, Copy, Check, BarChart3, ArrowRight } from 'lucide-react';
 import JobsTable from '../components/JobsTable';
 import ComposeModal from '../components/ComposeModal';
@@ -51,6 +51,38 @@ const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [composeOpen, setComposeOpen] = useState(false);
+
+  // Draggable split pane state (LeetCode-style resizer)
+  const [splitWidth, setSplitWidth] = useState(440);
+  const isDragging = useRef(false);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDragging.current = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDragging.current || !splitContainerRef.current) return;
+      const containerRect = splitContainerRef.current.getBoundingClientRect();
+      const newWidth = ev.clientX - containerRect.left;
+      // Clamp between 280px and 70% of the container
+      const maxWidth = containerRect.width * 0.7;
+      setSplitWidth(Math.max(280, Math.min(newWidth, maxWidth)));
+    };
+
+    const onMouseUp = () => {
+      isDragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedJob, setSelectedJob] = useState<EmailJob | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -270,7 +302,10 @@ const Dashboard: React.FC = () => {
 
         {/* Compose Button */}
         <button
-          onClick={() => setComposeOpen(true)}
+          onClick={() => {
+            setComposeOpen(true);
+            setSelectedJob(null);
+          }}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-[#4CAF50] text-[#4CAF50] hover:bg-emerald-50 transition-all font-semibold text-sm mb-8 shadow-sm"
         >
           <Plus className="w-4 h-4" />
@@ -340,7 +375,14 @@ const Dashboard: React.FC = () => {
 
       {/* 2. Right Main Panel */}
       <main className="flex-1 flex flex-col min-w-0 bg-white overflow-hidden relative">
-        {activeTab === 'overview' ? (
+        {composeOpen ? (
+          /* Render Compose Screen Full Width */
+          <ComposeModal
+            isOpen={true}
+            onClose={() => setComposeOpen(false)}
+            onSuccess={handleComposeSuccess}
+          />
+        ) : activeTab === 'overview' ? (
           /* Overview View (Summary Analytics Dashboard) */
           <div className="flex-1 flex flex-col h-full bg-[#FCFCFD]/50 overflow-y-auto p-8 font-sans">
             {/* Welcome banner */}
@@ -526,10 +568,13 @@ const Dashboard: React.FC = () => {
           </div>
         ) : (
           /* Split View Layout (Email Lists on Left, Selected details on Right) */
-          <div className="flex-1 flex h-full overflow-hidden">
+          <div ref={splitContainerRef} className="flex-1 flex h-full overflow-hidden">
             
             {/* 2.1 Lists pane */}
-            <div className={`flex flex-col border-r border-slate-100 h-full overflow-hidden transition-all duration-300 ${selectedJob ? 'w-[440px] shrink-0' : 'flex-1'}`}>
+            <div
+              className="flex flex-col border-r border-slate-100 h-full overflow-hidden shrink-0"
+              style={{ width: selectedJob ? `${splitWidth}px` : '100%' }}
+            >
               
               {/* Top Toolbar (Search, Filter, Refresh) */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
@@ -638,9 +683,21 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Draggable Resizer Handle (LeetCode-style) */}
+            {selectedJob && (
+              <div
+                onMouseDown={handleMouseDown}
+                className="w-1.5 shrink-0 cursor-col-resize bg-transparent hover:bg-emerald-400/40 active:bg-emerald-500/50 transition-colors relative group z-10"
+                title="Drag to resize"
+              >
+                <div className="absolute inset-y-0 -left-1 -right-1" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-8 rounded-full bg-slate-300 group-hover:bg-emerald-500 transition-colors" />
+              </div>
+            )}
+
             {/* 2.2 Thread Details Pane (Matches Onebox/Gmail email detail panel) */}
             {selectedJob ? (
-              <div className="flex-1 bg-[#FAFAFA] flex flex-col h-full overflow-y-auto border-l border-slate-100 p-8 gap-6 animate-fade-in font-sans">
+              <div className="flex-1 bg-[#FAFAFA] flex flex-col h-full overflow-y-auto p-8 gap-6 animate-fade-in font-sans">
                 {/* Header Action Row */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                   <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 uppercase tracking-wider">
@@ -794,15 +851,6 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
-        )}
-
-        {/* Floating Compose Dock Overlay */}
-        {composeOpen && (
-          <ComposeModal
-            isOpen={true}
-            onClose={() => setComposeOpen(false)}
-            onSuccess={handleComposeSuccess}
-          />
         )}
       </main>
 
