@@ -57,10 +57,7 @@ VITE_API_BASE="http://localhost:4000/api"
 ##  How to Run the Project
 
 ### 1. Run Databases
-Ensure **MySQL** (port `3306`) and **Redis** (port `6379`) are running locally.
-
 Ensure **MySQL** (port `3306`) and **Redis** (port `6380`) are running locally.
-
 
 To start redis: .\redis-server.exe --port 6380
 **Windows Redis Setup:**
