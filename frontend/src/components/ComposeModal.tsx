@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Paperclip, Clock, Upload, Loader2, ChevronDown, Check, Sparkles } from 'lucide-react';
+import { ArrowLeft, Paperclip, Clock, Upload, Loader2, ChevronDown, Check, RotateCcw, RotateCw, Bold, Italic, Underline, AlignLeft, List, ListOrdered, Quote, Image, Strikethrough, Plus, X } from 'lucide-react';
 import { api } from '../api';
 import type { Sender } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -12,36 +12,36 @@ interface ComposeModalProps {
 
 interface FormState {
   subject: string;
-  body: string;
   senderId: string;
   startTime: string;
   delaySeconds: string;
   hourlyLimit: string;
-  manualLeads: string;
 }
 
 const DEFAULT_FORM: FormState = {
   subject: '',
-  body: '',
   senderId: '',
   startTime: '',
   delaySeconds: '5',
   hourlyLimit: '100',
-  manualLeads: '',
 };
 
 const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
   const [form, setForm] = useState<FormState>(DEFAULT_FORM);
   const [file, setFile] = useState<File | null>(null);
-  const [detectedEmails, setDetectedEmails] = useState<number>(0);
+  const [parsedEmails, setParsedEmails] = useState<string[]>([]);
+  const [emailInput, setEmailInput] = useState('');
   const [senders, setSenders] = useState<Sender[]>([]);
   const [loadingSenders, setLoadingSenders] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingEthereal, setCreatingEthereal] = useState(false);
   const [sendLaterOpen, setSendLaterOpen] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<HTMLDivElement>(null);
 
   // Set default start time to 2 minutes from now
   useEffect(() => {
@@ -77,15 +77,38 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
     if (selected) {
       const text = await selected.text();
       const emails = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-      setDetectedEmails(new Set(emails.map((em) => em.toLowerCase())).size);
-    } else {
-      setDetectedEmails(0);
+      const unique = Array.from(new Set(emails.map((em) => em.toLowerCase())));
+      setParsedEmails(unique);
     }
   };
 
-  const countManualEmails = (text: string) => {
-    const matches = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-    return new Set(matches.map((em) => em.toLowerCase())).size;
+  // Add email tag from manual input
+  const addEmailTag = (email: string) => {
+    const clean = email.trim().replace(/,/g, '');
+    if (clean && /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(clean)) {
+      if (!parsedEmails.includes(clean.toLowerCase())) {
+        setParsedEmails((prev) => [...prev, clean.toLowerCase()]);
+      }
+      setEmailInput('');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ',' || e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      addEmailTag(emailInput);
+    }
+  };
+
+  const handleBlur = () => {
+    addEmailTag(emailInput);
+  };
+
+  const removeEmailTag = (index: number) => {
+    setParsedEmails((prev) => prev.filter((_, i) => i !== index));
+    if (file) {
+      setFile(null); // Reset file if they manually edit the tags
+    }
   };
 
   const handleAddEtherealSender = async () => {
@@ -123,6 +146,30 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
     setSendLaterOpen(false);
   };
 
+  // Editor Commands
+  const format = (command: string, value: string = '') => {
+    document.execCommand(command, false, value);
+    if (editorRef.current) {
+      editorRef.current.focus();
+    }
+  };
+
+  const handleImageButtonClick = () => {
+    imageInputRef.current?.click();
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        format('insertImage', base64);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -133,9 +180,14 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
       return;
     }
 
-    const totalLeads = file ? detectedEmails : countManualEmails(form.manualLeads);
-    if (totalLeads === 0) {
-      setError('No valid email addresses found. Upload a list or enter leads manually.');
+    if (parsedEmails.length === 0) {
+      setError('No valid email addresses found. Upload a list or type recipients.');
+      return;
+    }
+
+    const bodyContent = editorRef.current?.innerHTML || '';
+    if (!bodyContent.replace(/<[^>]*>/g, '').trim()) {
+      setError('Email body content cannot be empty.');
       return;
     }
 
@@ -145,14 +197,15 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
       formData.append('userId', user.id);
       formData.append('senderId', form.senderId);
       formData.append('subject', form.subject);
-      formData.append('body', form.body);
+      formData.append('body', bodyContent);
       formData.append('startTime', new Date(form.startTime).toISOString());
       formData.append('delaySeconds', form.delaySeconds);
       formData.append('hourlyLimit', form.hourlyLimit);
+      
       if (file) {
         formData.append('file', file);
       } else {
-        formData.append('manualLeads', form.manualLeads);
+        formData.append('manualLeads', parsedEmails.join(','));
       }
 
       await api.scheduleCampaign(formData);
@@ -171,23 +224,40 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
   const handleClose = () => {
     setForm(DEFAULT_FORM);
     setFile(null);
-    setDetectedEmails(0);
+    setParsedEmails([]);
+    setEmailInput('');
     setError(null);
     setSendLaterOpen(false);
+    if (editorRef.current) {
+      editorRef.current.innerHTML = '';
+    }
     onClose();
   };
 
   if (!isOpen) return null;
 
-  const totalLeads = file ? detectedEmails : countManualEmails(form.manualLeads);
-  const isScheduledLater = new Date(form.startTime).getTime() > Date.now() + 180000; // scheduled later if > 3 mins
+  const totalLeads = parsedEmails.length;
+  const isScheduledLater = new Date(form.startTime).getTime() > Date.now() + 180000;
+
+  // Max 3 emails shown as tags, the rest in a +N badge
+  const visibleEmails = parsedEmails.slice(0, 3);
+  const extraCount = parsedEmails.length - 3;
 
   return (
     <div className="flex-1 bg-white min-h-screen flex flex-col font-sans border-l border-slate-100">
+      {/* Hidden file input for image uploads inside contentEditable */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageUpload}
+      />
+
       {/* Top Navigation / Toolbar */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
         <div className="flex items-center gap-3">
-          <button onClick={handleClose} className="p-1 text-slate-500 hover:text-slate-800 transition-colors">
+          <button onClick={handleClose} type="button" className="p-1 text-slate-500 hover:text-slate-800 transition-colors">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <span className="font-bold text-slate-800 text-base">Compose New Email</span>
@@ -200,7 +270,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
           <button
             type="button"
             onClick={() => setSendLaterOpen(!sendLaterOpen)}
-            className={`p-2 rounded-lg transition-colors ${sendLaterOpen ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`p-2 rounded-lg transition-colors ${sendLaterOpen ? 'text-[#4CAF50] bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <Clock className="w-4 h-4" />
           </button>
@@ -208,7 +278,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full border border-[#4CAF50] text-[#4CAF50] text-sm font-semibold hover:bg-emerald-50 transition-colors disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -223,16 +293,16 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
 
       <div className="flex-1 flex relative">
         {/* Main Compose Form */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col p-6 gap-5 min-w-0">
+        <div className="flex-1 flex flex-col p-6 gap-5 min-w-0">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg animate-fade-in">
               {error}
             </div>
           )}
 
-          {/* From Selector */}
+          {/* From Row */}
           <div className="flex items-center py-2 border-b border-slate-100 gap-4">
-            <span className="w-16 text-sm text-slate-400">From</span>
+            <span className="w-16 text-sm text-slate-400 font-medium">From</span>
             <div className="flex-1 flex items-center gap-3">
               {loadingSenders ? (
                 <div className="w-48 h-8 bg-slate-50 animate-pulse rounded" />
@@ -247,7 +317,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                   >
                     {senders.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.email} ({s.name})
+                        {s.email}
                       </option>
                     ))}
                   </select>
@@ -259,48 +329,79 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                 type="button"
                 onClick={handleAddEtherealSender}
                 disabled={creatingEthereal}
-                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold border border-emerald-200 bg-emerald-50/50 px-2.5 py-1 rounded transition-colors disabled:opacity-50"
+                className="text-xs text-[#4CAF50] hover:text-[#43A047] font-semibold border border-emerald-200 bg-emerald-50/50 px-2.5 py-1 rounded transition-colors disabled:opacity-50"
               >
-                {creatingEthereal ? <Loader2 className="w-3 h-3 animate-spin" /> : '+ Add Ethereal Sender'}
+                {creatingEthereal ? <Loader2 className="w-3 h-3 animate-spin" /> : '+ Add Sender'}
               </button>
             </div>
           </div>
 
-          {/* To Field with List Upload */}
-          <div className="flex items-center py-2 border-b border-slate-100 gap-4">
-            <span className="w-16 text-sm text-slate-400">To</span>
-            <div className="flex-1 flex items-center justify-between gap-4">
-              <input
-                type="text"
-                placeholder={file ? `${detectedEmails} emails uploaded via list` : "Enter recipient email(s) manually..."}
-                disabled={!!file}
-                value={form.manualLeads}
-                onChange={(e) => setForm((p) => ({ ...p, manualLeads: e.target.value }))}
-                className="flex-1 bg-transparent text-sm text-slate-700 focus:outline-none placeholder:text-slate-300 disabled:opacity-75"
-              />
+          {/* To Row (Matches Figma Tag Badges Layout) */}
+          <div className="flex items-start py-2 border-b border-slate-100 gap-4 min-h-[44px]">
+            <span className="w-16 text-sm text-slate-400 font-medium mt-1">To</span>
+            <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
               
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.txt"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 text-xs text-[#4CAF50] hover:text-[#43A047] font-semibold transition-colors"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                {file ? file.name : 'Upload List'}
-              </button>
+              {/* Tags Container */}
+              <div className="flex-1 flex items-center gap-2 flex-wrap min-w-0">
+                {visibleEmails.map((email, index) => (
+                  <div
+                    key={email}
+                    className="flex items-center gap-1 px-3 py-1 rounded-full border border-emerald-200 bg-[#E8F5E9] text-[#2E7D32] text-xs font-semibold"
+                  >
+                    <span>{email}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeEmailTag(index)}
+                      className="hover:text-red-600 transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                
+                {extraCount > 0 && (
+                  <span className="px-3 py-1 rounded-full border border-emerald-200 bg-[#E8F5E9] text-[#2E7D32] text-xs font-semibold">
+                    +{extraCount}
+                  </span>
+                )}
+
+                {/* Inline Email Input */}
+                <input
+                  type="text"
+                  placeholder={parsedEmails.length === 0 ? "Enter recipient email(s) manually..." : ""}
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={handleBlur}
+                  className="flex-grow min-w-[150px] bg-transparent text-sm text-slate-700 focus:outline-none placeholder:text-slate-300 py-1"
+                />
+              </div>
+
+              {/* Upload List Trigger */}
+              <div className="shrink-0">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 text-xs text-[#4CAF50] hover:text-[#43A047] font-semibold transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Upload List
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Subject Field */}
+          {/* Subject Row */}
           <div className="flex items-center py-2 border-b border-slate-100 gap-4">
-            <span className="w-16 text-sm text-slate-400">Subject</span>
+            <span className="w-16 text-sm text-slate-400 font-medium">Subject</span>
             <input
               type="text"
               required
@@ -314,7 +415,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
           {/* Delay & Hourly Limit config */}
           <div className="flex flex-wrap items-center py-2 border-b border-slate-100 gap-y-3 gap-x-8">
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-400">Delay between 2 emails</span>
+              <span className="text-sm text-slate-400 font-medium">Delay between 2 emails</span>
               <input
                 type="number"
                 min="0"
@@ -325,7 +426,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
             </div>
             
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-400">Hourly Limit</span>
+              <span className="text-sm text-slate-400 font-medium">Hourly Limit</span>
               <input
                 type="number"
                 min="1"
@@ -338,39 +439,70 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
 
           {/* Email Body & Text Area Editor (Mock Rich Toolbar) */}
           <div className="flex-1 flex flex-col min-h-[300px] border border-slate-100 rounded-lg overflow-hidden mt-2 bg-slate-50/30">
-            <textarea
-              required
+            {/* Real contentEditable Rich Text Area */}
+            <div
+              ref={editorRef}
+              contentEditable
               placeholder="Type Your Reply..."
-              value={form.body}
-              onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
-              className="flex-1 p-4 bg-transparent text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none resize-none font-sans"
+              className="flex-1 p-4 bg-transparent text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none overflow-y-auto select-text font-sans"
+              style={{ minHeight: '220px' }}
             />
 
-            {/* Custom Rich Formatting Toolbar (Matches screenshot editor toolbar) */}
+            {/* Custom Rich Formatting Toolbar (Matches screenshot editor toolbar exactly) */}
             <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-2 select-none">
-              <div className="flex flex-wrap items-center gap-1.5 text-slate-400">
-                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs font-bold font-serif">A</button>
-                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors font-bold text-xs">B</button>
-                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors italic text-xs">I</button>
-                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors underline text-xs">U</button>
+              <div className="flex flex-wrap items-center gap-1 text-slate-400">
+                <button type="button" onClick={() => format('undo')} title="Undo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <RotateCcw className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => format('redo')} title="Redo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <RotateCw className="w-3.5 h-3.5" />
+                </button>
                 <span className="text-slate-200">|</span>
-                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs">🔗</button>
-                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs">🖼️</button>
+                
+                <button type="button" onClick={() => format('bold')} title="Bold" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => format('italic')} title="Italic" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => format('underline')} title="Underline" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <Underline className="w-3.5 h-3.5" />
+                </button>
                 <span className="text-slate-200">|</span>
-                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs">Format</button>
+
+                <button type="button" onClick={() => format('justifyLeft')} title="Align Left" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <AlignLeft className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => format('insertUnorderedList')} title="Bullet List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => format('insertOrderedList')} title="Numbered List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <ListOrdered className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-slate-200">|</span>
+
+                <button type="button" onClick={() => format('formatBlock', 'blockquote')} title="Blockquote" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <Quote className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={handleImageButtonClick} title="Insert Image" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <Image className="w-3.5 h-3.5" />
+                </button>
+                <button type="button" onClick={() => format('strikeThrough')} title="Strikethrough" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                  <Strikethrough className="w-3.5 h-3.5" />
+                </button>
               </div>
               
-              {file && (
-                <div className="text-xs text-[#4CAF50] font-semibold flex items-center gap-1">
+              {totalLeads > 0 && (
+                <div className="text-xs text-[#2E7D32] font-semibold flex items-center gap-1">
                   <Check className="w-3.5 h-3.5" />
-                  {totalLeads} Leads Loaded
+                  {totalLeads} Lead{totalLeads !== 1 ? 's' : ''} Loaded
                 </div>
               )}
             </div>
           </div>
-        </form>
+        </div>
 
-        {/* Send Later Panel (Matches screenshot) */}
+        {/* Send Later Panel */}
         {sendLaterOpen && (
           <div className="w-80 border-l border-slate-100 bg-white p-6 flex flex-col gap-5 shrink-0 z-10 shadow-sm animate-fade-in font-sans">
             <h3 className="font-bold text-slate-800 text-sm">Send Later</h3>
