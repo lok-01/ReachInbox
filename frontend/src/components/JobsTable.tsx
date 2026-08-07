@@ -34,7 +34,7 @@ const JobsTable: React.FC<JobsTableProps> = ({
     <div className="flex flex-col gap-4 font-sans bg-white select-none">
       {/* List Container */}
       <div className="flex flex-col border-t border-b border-slate-100">
-        {loading ? (
+        {loading && jobs.length === 0 ? (
           // Skeletons
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="flex items-center justify-between py-5 px-6 border-b border-slate-50 animate-pulse">

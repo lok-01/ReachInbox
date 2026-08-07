@@ -49,16 +49,17 @@ const Dashboard: React.FC = () => {
       setScheduledPagination(data.pagination);
       
       // Update selected job state dynamically if it was loaded
-      if (selectedJob && activeTab === 'scheduled') {
-        const updated = data.jobs.find((j: EmailJob) => j.id === selectedJob.id);
-        if (updated) setSelectedJob(updated);
-      }
+      setSelectedJob((prev) => {
+        if (!prev || activeTab !== 'scheduled') return prev;
+        const updated = data.jobs.find((j: EmailJob) => j.id === prev.id);
+        return updated || prev;
+      });
     } catch (err) {
       console.error('Failed to fetch scheduled jobs:', err);
     } finally {
       setLoadingScheduled(false);
     }
-  }, [selectedJob, activeTab]);
+  }, [activeTab]);
 
   const fetchSent = useCallback(async (page: number) => {
     setLoadingSent(true);
@@ -68,16 +69,17 @@ const Dashboard: React.FC = () => {
       setSentPagination(data.pagination);
 
       // Update selected job state dynamically if it was loaded
-      if (selectedJob && activeTab === 'sent') {
-        const updated = data.jobs.find((j: EmailJob) => j.id === selectedJob.id);
-        if (updated) setSelectedJob(updated);
-      }
+      setSelectedJob((prev) => {
+        if (!prev || activeTab !== 'sent') return prev;
+        const updated = data.jobs.find((j: EmailJob) => j.id === prev.id);
+        return updated || prev;
+      });
     } catch (err) {
       console.error('Failed to fetch sent jobs:', err);
     } finally {
       setLoadingSent(false);
     }
-  }, [selectedJob, activeTab]);
+  }, [activeTab]);
 
   const fetchStats = useCallback(async () => {
     try {
