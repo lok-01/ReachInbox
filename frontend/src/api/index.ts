@@ -37,22 +37,24 @@ export const api = {
   },
 
   // Jobs
-  getScheduledJobs: async (page = 1, limit = 10, status?: string): Promise<JobsResponse> => {
+  getScheduledJobs: async (page = 1, limit = 10, status?: string, userId?: string): Promise<JobsResponse> => {
     const res = await apiClient.get<JobsResponse>('/jobs/scheduled', {
-      params: { page, limit, status },
+      params: { page, limit, status, userId },
     });
     return res.data;
   },
 
-  getSentJobs: async (page = 1, limit = 10, status?: string): Promise<JobsResponse> => {
+  getSentJobs: async (page = 1, limit = 10, status?: string, userId?: string): Promise<JobsResponse> => {
     const res = await apiClient.get<JobsResponse>('/jobs/sent', {
-      params: { page, limit, status },
+      params: { page, limit, status, userId },
     });
     return res.data;
   },
 
-  getStats: async (): Promise<StatsResponse> => {
-    const res = await apiClient.get<StatsResponse>('/jobs/stats');
+  getStats: async (userId?: string): Promise<StatsResponse> => {
+    const res = await apiClient.get<StatsResponse>('/jobs/stats', {
+      params: { userId },
+    });
     return res.data;
   },
 

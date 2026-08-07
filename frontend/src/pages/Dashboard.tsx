@@ -115,7 +115,7 @@ const Dashboard: React.FC = () => {
   const fetchScheduled = useCallback(async (page: number) => {
     setLoadingScheduled(true);
     try {
-      const data = await api.getScheduledJobs(page, 10);
+      const data = await api.getScheduledJobs(page, 10, undefined, user?.id);
       setScheduledJobs(data.jobs);
       setScheduledPagination(data.pagination);
       
@@ -130,12 +130,12 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoadingScheduled(false);
     }
-  }, [activeTab]);
+  }, [activeTab, user?.id]);
 
   const fetchSent = useCallback(async (page: number) => {
     setLoadingSent(true);
     try {
-      const data = await api.getSentJobs(page, 10);
+      const data = await api.getSentJobs(page, 10, undefined, user?.id);
       setSentJobs(data.jobs);
       setSentPagination(data.pagination);
 
@@ -150,16 +150,16 @@ const Dashboard: React.FC = () => {
     } finally {
       setLoadingSent(false);
     }
-  }, [activeTab]);
+  }, [activeTab, user?.id]);
 
   const fetchStats = useCallback(async () => {
     try {
-      const data = await api.getStats();
+      const data = await api.getStats(user?.id);
       setStats(data);
     } catch {
       // ignore
     }
-  }, []);
+  }, [user?.id]);
 
   const refreshSelectedJobDetails = useCallback(async (jobId: string) => {
     try {

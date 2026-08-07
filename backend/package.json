@@ -9,7 +9,6 @@
     "start": "prisma db push && node dist/index.js",
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:generate": "prisma generate",
-    "reset": "ts-node src/reset.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

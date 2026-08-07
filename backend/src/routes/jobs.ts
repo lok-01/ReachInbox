@@ -18,16 +18,24 @@ router.get('/scheduled', async (req: Request, res: Response) => {
       ? statusParam.split(',') 
       : ['PENDING', 'SCHEDULED', 'RATE_LIMITED'];
 
+    const userId = req.query.userId as string;
+    const whereClause: any = {
+      status: { in: statuses as any }
+    };
+    if (userId) {
+      whereClause.campaign = { userId };
+    }
+
     const [jobs, total] = await Promise.all([
       prisma.emailJob.findMany({
-        where: { status: { in: statuses as any } },
+        where: whereClause,
         include: { sender: { select: { email: true, name: true } } },
         orderBy: { scheduledAt: 'asc' },
         skip,
         take: limit,
       }),
       prisma.emailJob.count({
-        where: { status: { in: statuses as any } },
+        where: whereClause,
       }),
     ]);
 
@@ -66,16 +74,24 @@ router.get('/sent', async (req: Request, res: Response) => {
       ? statusParam.split(',') 
       : ['SENT', 'FAILED'];
 
+    const userId = req.query.userId as string;
+    const whereClause: any = {
+      status: { in: statuses as any }
+    };
+    if (userId) {
+      whereClause.campaign = { userId };
+    }
+
     const [jobs, total] = await Promise.all([
       prisma.emailJob.findMany({
-        where: { status: { in: statuses as any } },
+        where: whereClause,
         include: { sender: { select: { email: true, name: true } } },
         orderBy: { sentAt: 'desc' },
         skip,
         take: limit,
       }),
       prisma.emailJob.count({
-        where: { status: { in: statuses as any } },
+        where: whereClause,
       }),
     ]);
 
@@ -105,10 +121,17 @@ router.get('/sent', async (req: Request, res: Response) => {
  * GET /api/jobs/stats
  * Returns aggregate counts by status.
  */
-router.get('/stats', async (_req: Request, res: Response) => {
+router.get('/stats', async (req: Request, res: Response) => {
   try {
+    const userId = req.query.userId as string;
+    const whereClause: any = {};
+    if (userId) {
+      whereClause.campaign = { userId };
+    }
+
     const stats = await prisma.emailJob.groupBy({
       by: ['status'],
+      where: whereClause,
       _count: { _all: true },
     });
     const result: Record<string, number> = {};
