@@ -6,7 +6,7 @@ A production-grade, highly-resilient, and scalable email scheduling and monitori
 
 ## 🌐 Live Demo
 
-- **Frontend (Vercel)**: [https://reachinboxx-inky.vercel.app/](https://reachinboxx-inky.vercel.app/)
+- **Frontend (Vercel)**: [https://reachinbox3.vercel.app/](https://reachinbox3.vercel.app/)
 - **Backend (Railway)**: [https://reachinbox-production-534a.up.railway.app](https://reachinbox-production-534a.up.railway.app)
 
 ---
@@ -58,6 +58,19 @@ VITE_API_BASE="http://localhost:4000/api"
 
 ### 1. Run Databases
 Ensure **MySQL** (port `3306`) and **Redis** (port `6379`) are running locally.
+
+Ensure **MySQL** (port `3306`) and **Redis** (port `6380`) are running locally.
+
+
+To start redis: .\redis-server.exe --port 6380
+**Windows Redis Setup:**
+Since BullMQ requires Redis 5.0+, the default Windows Redis (v3) won't work.
+1. Download **Redis 5.0.14 for Windows** from [tporadowski/redis](https://github.com/tporadowski/redis/releases).
+2. Extract the `.zip` file into a folder (e.g., `redis-bin` in the root of this project).
+3. Open a terminal in that folder and run Redis on port 6380:
+```powershell
+cd redis-bin
+.\redis-server.exe --port 6380
 
 ### 2. Run Backend
 ```bash

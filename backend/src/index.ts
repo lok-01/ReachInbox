@@ -1,14 +1,14 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import authRouter from './routes/auth';
 import sendersRouter from './routes/senders';
 import jobsRouter from './routes/jobs';
 import campaignsRouter from './routes/campaigns';
 import { startWorker, startQueueEvents } from './queue';
 import { recoverJobs } from './recovery';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
