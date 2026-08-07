@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Clock, Send, RefreshCw, TrendingUp, Mail, CheckCircle, AlertTriangle } from 'lucide-react';
 import Header from '../components/Header';
+import Sidebar from '../components/Sidebar';
 import JobsTable from '../components/JobsTable';
 import ComposeModal from '../components/ComposeModal';
 import { api } from '../api';
@@ -115,16 +116,19 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19]">
-      {/* Ambient background blobs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-glow" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl animate-glow" style={{ animationDelay: '2s' }} />
-      </div>
+    <div className="flex min-h-screen bg-[#0b0f19]">
+      <Sidebar />
 
-      <Header onCompose={() => setComposeOpen(true)} />
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Ambient background blobs */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-glow" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl animate-glow" style={{ animationDelay: '2s' }} />
+        </div>
 
-      <main className="relative max-w-7xl mx-auto px-6 py-8">
+        <Header onCompose={() => setComposeOpen(true)} />
+
+        <main className="relative flex-1 px-8 py-8 overflow-y-auto">
         {/* Page Title */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-100">Email Dashboard</h1>
@@ -248,6 +252,7 @@ const Dashboard: React.FC = () => {
         onClose={() => setComposeOpen(false)}
         onSuccess={handleComposeSuccess}
       />
+      </div>
     </div>
   );
 };

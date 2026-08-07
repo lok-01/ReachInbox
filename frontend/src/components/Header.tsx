@@ -12,13 +12,10 @@ const Header: React.FC<HeaderProps> = ({ onCompose }) => {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/5 bg-[#0b0f19]/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
-        {/* Brand */}
+        {/* Brand / Title (Matches Figma) */}
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
-          <span className="text-lg font-bold bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">
-            ReachInbox
+          <span className="text-sm font-bold text-slate-100 tracking-wide">
+            Onebox
           </span>
         </div>
 
