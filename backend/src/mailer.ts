@@ -19,11 +19,14 @@ export function createTransporter(creds: SenderCredentials) {
   return nodemailer.createTransport({
     host: creds.host,
     port: creds.port,
-    secure: false,
+    secure: creds.port === 465,
     auth: {
       user: creds.user,
       pass: creds.pass,
     },
+    connectionTimeout: 15000, // 15 seconds
+    greetingTimeout: 15000,   // 15 seconds
+    socketTimeout: 30000,     // 30 seconds
   });
 }
 
