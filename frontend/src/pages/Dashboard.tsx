@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Send, RefreshCw, Sliders, ChevronDown, LogOut, Plus, Search, X, CheckCircle, AlertTriangle, Calendar, Info, Copy, ExternalLink } from 'lucide-react';
+import { Clock, Send, RefreshCw, Sliders, ChevronDown, LogOut, Plus, Search, X, CheckCircle, AlertTriangle, Calendar, Info, Copy, ExternalLink, Check } from 'lucide-react';
 import JobsTable from '../components/JobsTable';
 import ComposeModal from '../components/ComposeModal';
 import { api } from '../api';
