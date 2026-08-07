@@ -8,6 +8,8 @@ interface JobsTableProps {
   pagination: Pagination | null;
   onPageChange: (page: number) => void;
   type: 'scheduled' | 'sent';
+  onSelectJob?: (job: EmailJob) => void;
+  selectedJobId?: string;
 }
 
 function formatFigmaDate(dateStr?: string): string {
@@ -19,9 +21,17 @@ function formatFigmaDate(dateStr?: string): string {
   return `${dayName} ${timeStr}`;
 }
 
-const JobsTable: React.FC<JobsTableProps> = ({ jobs, loading, pagination, onPageChange, type }) => {
+const JobsTable: React.FC<JobsTableProps> = ({
+  jobs,
+  loading,
+  pagination,
+  onPageChange,
+  type,
+  onSelectJob,
+  selectedJobId,
+}) => {
   return (
-    <div className="flex flex-col gap-4 font-sans bg-white">
+    <div className="flex flex-col gap-4 font-sans bg-white select-none">
       {/* List Container */}
       <div className="flex flex-col border-t border-b border-slate-100">
         {loading ? (
@@ -44,10 +54,16 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs, loading, pagination, onPage
         ) : (
           jobs.map((job) => {
             const isScheduled = type === 'scheduled';
+            const isSelected = selectedJobId === job.id;
             return (
               <div
                 key={job.id}
-                className="flex items-center justify-between py-4 px-6 border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
+                onClick={() => onSelectJob?.(job)}
+                className={`flex items-center justify-between py-4 px-6 border-b border-slate-100 cursor-pointer transition-all ${
+                  isSelected
+                    ? 'bg-[#F4FBF7] border-l-4 border-emerald-500 pl-[20px]'
+                    : 'hover:bg-slate-50/50'
+                }`}
               >
                 {/* Left & Middle Info */}
                 <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-1 min-w-0">
@@ -84,7 +100,7 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs, loading, pagination, onPage
 
                 {/* Right Star Action */}
                 <div className="shrink-0 pl-4">
-                  <button className="text-slate-300 hover:text-amber-400 transition-colors">
+                  <button className={`transition-colors ${isSelected ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}>
                     <Star className="w-4 h-4" />
                   </button>
                 </div>
