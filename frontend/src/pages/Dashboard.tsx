@@ -609,15 +609,15 @@ const Dashboard: React.FC = () => {
           </div>
         )}
       </main>
-    </div>
 
-    {/* Toast Notification Popover */}
-    {toast.show && (
-      <div className={`fixed bottom-6 right-6 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-semibold font-sans animate-slide-up z-50 transition-all ${toast.type === 'success' ? 'bg-[#E8F5E9] border-emerald-100 text-[#2E7D32]' : 'bg-red-50 border-red-100 text-red-600'}`}>
-        {toast.type === 'success' ? <CheckCircle className="w-4.5 h-4.5 text-[#2E7D32]" /> : <AlertTriangle className="w-4.5 h-4.5 text-red-600" />}
-        <span>{toast.message}</span>
-      </div>
-    )}
+      {/* Toast Notification Popover */}
+      {toast.show && (
+        <div className={`fixed bottom-6 right-6 flex items-center gap-3 px-5 py-3.5 rounded-xl shadow-lg border text-sm font-semibold font-sans animate-slide-up z-50 transition-all ${toast.type === 'success' ? 'bg-[#E8F5E9] border-emerald-100 text-[#2E7D32]' : 'bg-red-50 border-red-100 text-red-600'}`}>
+          {toast.type === 'success' ? <CheckCircle className="w-4.5 h-4.5 text-[#2E7D32]" /> : <AlertTriangle className="w-4.5 h-4.5 text-red-600" />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+    </div>
   );
 };
 
