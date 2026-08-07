@@ -1,7 +1,6 @@
 import React from 'react';
-import { ChevronLeft, ChevronRight, Mail, Clock, Send } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import type { EmailJob, Pagination } from '../types';
-import StatusBadge from './StatusBadge';
 
 interface JobsTableProps {
   jobs: EmailJob[];
@@ -11,120 +10,94 @@ interface JobsTableProps {
   type: 'scheduled' | 'sent';
 }
 
-function formatDate(dateStr?: string): string {
+function formatFigmaDate(dateStr?: string): string {
   if (!dateStr) return '—';
-  return new Intl.DateTimeFormat('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(dateStr));
+  const d = new Date(dateStr);
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayName = days[d.getDay()];
+  const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+  return `${dayName} ${timeStr}`;
 }
 
-// Skeleton row for loading state
-const SkeletonRow: React.FC = () => (
-  <tr className="border-b border-white/5">
-    {[1, 2, 3, 4, 5].map((i) => (
-      <td key={i} className="px-5 py-4">
-        <div className="h-4 bg-white/5 rounded-md animate-pulse" style={{ width: `${40 + i * 10}%` }} />
-      </td>
-    ))}
-  </tr>
-);
-
-// Empty state display
-const EmptyState: React.FC<{ type: 'scheduled' | 'sent' }> = ({ type }) => (
-  <tr>
-    <td colSpan={5} className="px-5 py-16 text-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center">
-          {type === 'scheduled' ? (
-            <Clock className="w-6 h-6 text-slate-500" />
-          ) : (
-            <Send className="w-6 h-6 text-slate-500" />
-          )}
-        </div>
-        <p className="text-slate-400 font-medium">
-          {type === 'scheduled' ? 'No scheduled emails' : 'No sent emails yet'}
-        </p>
-        <p className="text-slate-600 text-sm">
-          {type === 'scheduled'
-            ? 'Schedule a campaign to see emails here.'
-            : 'Emails will appear here once sent.'}
-        </p>
-      </div>
-    </td>
-  </tr>
-);
-
 const JobsTable: React.FC<JobsTableProps> = ({ jobs, loading, pagination, onPageChange, type }) => {
-  const isScheduled = type === 'scheduled';
-
   return (
-    <div className="flex flex-col gap-4">
-      {/* Table */}
-      <div className="rounded-xl border border-white/8 bg-white/3 backdrop-blur-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-white/8 bg-white/3">
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Recipient</div>
-                </th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Subject</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Sender</th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                  {isScheduled ? 'Scheduled At' : 'Sent At'}
-                </th>
-                <th className="px-5 py-3.5 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
-              ) : jobs.length === 0 ? (
-                <EmptyState type={type} />
-              ) : (
-                jobs.map((job, idx) => (
-                  <tr
-                    key={job.id}
-                    className={`border-b border-white/5 hover:bg-white/3 transition-colors duration-150 ${
-                      idx % 2 === 0 ? '' : 'bg-white/1'
-                    }`}
-                  >
-                    <td className="px-5 py-4">
-                      <span className="text-slate-200 font-medium truncate max-w-[180px] block">
-                        {job.recipient}
+    <div className="flex flex-col gap-4 font-sans bg-white">
+      {/* List Container */}
+      <div className="flex flex-col border-t border-b border-slate-100">
+        {loading ? (
+          // Skeletons
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between py-5 px-6 border-b border-slate-50 animate-pulse">
+              <div className="flex items-center gap-6 flex-1">
+                <div className="w-24 h-4 bg-slate-100 rounded-md" />
+                <div className="w-20 h-5 bg-slate-100 rounded-full" />
+                <div className="w-1/2 h-4 bg-slate-100 rounded-md" />
+              </div>
+              <div className="w-5 h-5 bg-slate-100 rounded-full" />
+            </div>
+          ))
+        ) : jobs.length === 0 ? (
+          // Empty State
+          <div className="py-16 text-center text-slate-400">
+            {type === 'scheduled' ? 'No scheduled emails' : 'No sent emails'}
+          </div>
+        ) : (
+          jobs.map((job) => {
+            const isScheduled = type === 'scheduled';
+            return (
+              <div
+                key={job.id}
+                className="flex items-center justify-between py-4 px-6 border-b border-slate-100 hover:bg-slate-50/50 transition-colors"
+              >
+                {/* Left & Middle Info */}
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 flex-1 min-w-0">
+                  {/* Recipient */}
+                  <div className="w-32 shrink-0 font-medium text-slate-800 text-sm truncate">
+                    To: {job.recipient.split('@')[0]}
+                  </div>
+
+                  {/* Status / Date Badge */}
+                  <div className="shrink-0 flex items-center">
+                    {isScheduled ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFF3E0] text-[#E65100]">
+                        {formatFigmaDate(job.scheduledAt)}
                       </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="text-slate-300 truncate max-w-[200px] block">{job.subject}</span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="text-slate-400 text-xs truncate max-w-[160px] block">
-                        {job.senderName} <br />
-                        <span className="text-slate-600">{job.sender}</span>
+                    ) : job.status === 'FAILED' ? (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-600">
+                        Failed
                       </span>
-                    </td>
-                    <td className="px-5 py-4 text-slate-400 whitespace-nowrap">
-                      {isScheduled ? formatDate(job.scheduledAt) : formatDate(job.sentAt)}
-                    </td>
-                    <td className="px-5 py-4">
-                      <StatusBadge status={job.status} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">
+                        Sent
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Subject + Body Snippet */}
+                  <div className="flex-1 min-w-0 text-sm">
+                    <span className="font-semibold text-slate-800">{job.subject}</span>
+                    <span className="text-slate-400 font-normal truncate">
+                      {' — '}{job.body.replace(/<[^>]*>/g, '') || (job.error ? `Error: ${job.error}` : 'No content')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Star Action */}
+                <div className="shrink-0 pl-4">
+                  <button className="text-slate-300 hover:text-amber-400 transition-colors">
+                    <Star className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex items-center justify-between px-1">
-          <p className="text-slate-500 text-sm">
+        <div className="flex items-center justify-between px-6 py-2">
+          <p className="text-slate-400 text-xs">
             Showing {((pagination.page - 1) * pagination.limit) + 1}–
             {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
           </p>
@@ -132,19 +105,17 @@ const JobsTable: React.FC<JobsTableProps> = ({ jobs, loading, pagination, onPage
             <button
               onClick={() => onPageChange(pagination.page - 1)}
               disabled={pagination.page <= 1}
-              id="prev-page-btn"
-              className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+              className="p-1.5 rounded border border-slate-200 text-slate-400 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="px-3 py-1.5 text-sm text-slate-300">
+            <span className="px-2 py-1 text-xs text-slate-500">
               {pagination.page} / {pagination.totalPages}
             </span>
             <button
               onClick={() => onPageChange(pagination.page + 1)}
               disabled={pagination.page >= pagination.totalPages}
-              id="next-page-btn"
-              className="p-2 rounded-lg border border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200"
+              className="p-1.5 rounded border border-slate-200 text-slate-400 hover:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>

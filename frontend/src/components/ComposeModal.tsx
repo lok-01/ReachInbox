@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, Clock, Users, AlertCircle, Loader2, Zap, ChevronDown } from 'lucide-react';
+import { ArrowLeft, Paperclip, Clock, Upload, Loader2, ChevronDown, Check, Sparkles } from 'lucide-react';
 import { api } from '../api';
 import type { Sender } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +40,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creatingEthereal, setCreatingEthereal] = useState(false);
+  const [sendLaterOpen, setSendLaterOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Set default start time to 2 minutes from now
@@ -47,7 +48,6 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
     if (isOpen) {
       const now = new Date();
       now.setMinutes(now.getMinutes() + 2);
-      // Format for datetime-local input
       const localStr = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
         .toISOString()
         .slice(0, 16);
@@ -101,6 +101,28 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
     }
   };
 
+  const setPresetTime = (preset: 'tomorrow_10' | 'tomorrow_11' | 'tomorrow_15' | 'tomorrow') => {
+    const now = new Date();
+    const target = new Date(now);
+    target.setDate(now.getDate() + 1); // Tomorrow
+
+    if (preset === 'tomorrow_10') {
+      target.setHours(10, 0, 0, 0);
+    } else if (preset === 'tomorrow_11') {
+      target.setHours(11, 0, 0, 0);
+    } else if (preset === 'tomorrow_15') {
+      target.setHours(15, 0, 0, 0);
+    } else {
+      // default tomorrow same time
+    }
+
+    const localStr = new Date(target.getTime() - target.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
+    setForm((prev) => ({ ...prev, startTime: localStr }));
+    setSendLaterOpen(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -113,7 +135,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
 
     const totalLeads = file ? detectedEmails : countManualEmails(form.manualLeads);
     if (totalLeads === 0) {
-      setError('No valid email addresses found. Upload a file or enter leads manually.');
+      setError('No valid email addresses found. Upload a list or enter leads manually.');
       return;
     }
 
@@ -151,89 +173,112 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
     setFile(null);
     setDetectedEmails(0);
     setError(null);
+    setSendLaterOpen(false);
     onClose();
   };
 
   if (!isOpen) return null;
 
   const totalLeads = file ? detectedEmails : countManualEmails(form.manualLeads);
+  const isScheduledLater = new Date(form.startTime).getTime() > Date.now() + 180000; // scheduled later if > 3 mins
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={handleClose}
-      />
-
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#111827] shadow-2xl shadow-black/50">
-        {/* Header */}
-        <div className="sticky top-0 flex items-center justify-between px-6 py-4 border-b border-white/8 bg-[#111827]/90 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-blue-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-slate-100">Compose Campaign</h2>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/8 transition-all duration-200"
-          >
-            <X className="w-5 h-5" />
+    <div className="flex-1 bg-white min-h-screen flex flex-col font-sans border-l border-slate-100">
+      {/* Top Navigation / Toolbar */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
+        <div className="flex items-center gap-3">
+          <button onClick={handleClose} className="p-1 text-slate-500 hover:text-slate-800 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
           </button>
+          <span className="font-bold text-slate-800 text-base">Compose New Email</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
-          {/* Error Banner */}
+        <div className="flex items-center gap-4">
+          <button type="button" className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+            <Paperclip className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setSendLaterOpen(!sendLaterOpen)}
+            className={`p-2 rounded-lg transition-colors ${sendLaterOpen ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <Clock className="w-4 h-4" />
+          </button>
+          
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex items-center gap-1.5 px-5 py-2 rounded-full border border-emerald-500 text-emerald-600 text-sm font-semibold hover:bg-emerald-50 transition-colors disabled:opacity-50"
+          >
+            {submitting ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : isScheduledLater ? (
+              'Send Later'
+            ) : (
+              'Send'
+            )}
+          </button>
+        </div>
+      </div>
+
+      <div className="flex-1 flex relative">
+        {/* Main Compose Form */}
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col p-6 gap-5 min-w-0">
           {error && (
-            <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{error}</span>
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
+              {error}
             </div>
           )}
 
-          {/* Subject */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-300">Subject *</label>
-            <input
-              id="subject-input"
-              type="text"
-              required
-              value={form.subject}
-              onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-              placeholder="Your email subject..."
-              className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/8 transition-all duration-200 text-sm"
-            />
+          {/* From Selector */}
+          <div className="flex items-center py-2 border-b border-slate-100 gap-4">
+            <span className="w-16 text-sm text-slate-400">From</span>
+            <div className="flex-1 flex items-center gap-3">
+              {loadingSenders ? (
+                <div className="w-48 h-8 bg-slate-50 animate-pulse rounded" />
+              ) : senders.length === 0 ? (
+                <span className="text-xs text-amber-600">No senders found. Click "+" to generate one.</span>
+              ) : (
+                <div className="relative flex items-center">
+                  <select
+                    value={form.senderId}
+                    onChange={(e) => setForm((p) => ({ ...p, senderId: e.target.value }))}
+                    className="appearance-none pr-8 pl-3 py-1 bg-slate-50 border border-slate-200 rounded text-sm text-slate-700 font-medium focus:outline-none cursor-pointer"
+                  >
+                    {senders.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.email} ({s.name})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 pointer-events-none" />
+                </div>
+              )}
+              
+              <button
+                type="button"
+                onClick={handleAddEtherealSender}
+                disabled={creatingEthereal}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-semibold border border-emerald-200 bg-emerald-50/50 px-2.5 py-1 rounded transition-colors disabled:opacity-50"
+              >
+                {creatingEthereal ? <Loader2 className="w-3 h-3 animate-spin" /> : '+ Add Ethereal Sender'}
+              </button>
+            </div>
           </div>
 
-          {/* Body */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-slate-300">Email Body *</label>
-            <textarea
-              id="body-input"
-              required
-              rows={5}
-              value={form.body}
-              onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
-              placeholder="Write your email content here... (HTML supported)"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/8 transition-all duration-200 text-sm resize-y min-h-[120px]"
-            />
-          </div>
-
-          {/* Leads Upload */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-300">Email Leads *</label>
-
-            {/* File Upload Zone */}
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className={`relative flex flex-col items-center justify-center gap-2 p-5 rounded-lg border-2 border-dashed cursor-pointer transition-all duration-200 ${
-                file
-                  ? 'border-emerald-500/40 bg-emerald-500/5'
-                  : 'border-white/15 bg-white/3 hover:border-blue-500/40 hover:bg-blue-500/5'
-              }`}
-            >
+          {/* To Field with List Upload */}
+          <div className="flex items-center py-2 border-b border-slate-100 gap-4">
+            <span className="w-16 text-sm text-slate-400">To</span>
+            <div className="flex-1 flex items-center justify-between gap-4">
+              <input
+                type="text"
+                placeholder={file ? `${detectedEmails} emails uploaded via list` : "Enter recipient email(s) manually..."}
+                disabled={!!file}
+                value={form.manualLeads}
+                onChange={(e) => setForm((p) => ({ ...p, manualLeads: e.target.value }))}
+                className="flex-1 bg-transparent text-sm text-slate-700 focus:outline-none placeholder:text-slate-300 disabled:opacity-75"
+              />
+              
               <input
                 ref={fileInputRef}
                 type="file"
@@ -241,159 +286,155 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                 className="hidden"
                 onChange={handleFileChange}
               />
-              <Upload className={`w-5 h-5 ${file ? 'text-emerald-400' : 'text-slate-500'}`} />
-              {file ? (
-                <div className="text-center">
-                  <p className="text-sm font-medium text-emerald-400">{file.name}</p>
-                  <p className="text-xs text-emerald-500/70 mt-0.5 flex items-center gap-1 justify-center">
-                    <Users className="w-3 h-3" />
-                    {detectedEmails} unique email{detectedEmails !== 1 ? 's' : ''} detected
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center">
-                  <p className="text-sm text-slate-400">Click to upload CSV or TXT file</p>
-                  <p className="text-xs text-slate-600 mt-0.5">or enter emails manually below</p>
+              
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 text-xs text-[#4CAF50] hover:text-[#43A047] font-semibold transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" />
+                {file ? file.name : 'Upload List'}
+              </button>
+            </div>
+          </div>
+
+          {/* Subject Field */}
+          <div className="flex items-center py-2 border-b border-slate-100 gap-4">
+            <span className="w-16 text-sm text-slate-400">Subject</span>
+            <input
+              type="text"
+              required
+              value={form.subject}
+              onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
+              placeholder="Enter subject line..."
+              className="flex-1 bg-transparent text-sm text-slate-700 focus:outline-none placeholder:text-slate-300"
+            />
+          </div>
+
+          {/* Delay & Hourly Limit config */}
+          <div className="flex flex-wrap items-center py-2 border-b border-slate-100 gap-y-3 gap-x-8">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400">Delay between 2 emails</span>
+              <input
+                type="number"
+                min="0"
+                value={form.delaySeconds}
+                onChange={(e) => setForm((p) => ({ ...p, delaySeconds: e.target.value }))}
+                className="w-16 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-center text-sm font-medium text-slate-700 focus:outline-none"
+              />
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-slate-400">Hourly Limit</span>
+              <input
+                type="number"
+                min="1"
+                value={form.hourlyLimit}
+                onChange={(e) => setForm((p) => ({ ...p, hourlyLimit: e.target.value }))}
+                className="w-16 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-center text-sm font-medium text-slate-700 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Email Body & Text Area Editor (Mock Rich Toolbar) */}
+          <div className="flex-1 flex flex-col min-h-[300px] border border-slate-100 rounded-lg overflow-hidden mt-2 bg-slate-50/30">
+            <textarea
+              required
+              placeholder="Type Your Reply..."
+              value={form.body}
+              onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
+              className="flex-1 p-4 bg-transparent text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none resize-none font-sans"
+            />
+
+            {/* Custom Rich Formatting Toolbar (Matches screenshot editor toolbar) */}
+            <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-2 select-none">
+              <div className="flex flex-wrap items-center gap-1.5 text-slate-400">
+                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs font-bold font-serif">A</button>
+                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors font-bold text-xs">B</button>
+                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors italic text-xs">I</button>
+                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors underline text-xs">U</button>
+                <span className="text-slate-200">|</span>
+                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs">🔗</button>
+                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs">🖼️</button>
+                <span className="text-slate-200">|</span>
+                <button type="button" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors text-xs">Format</button>
+              </div>
+              
+              {file && (
+                <div className="text-xs text-[#4CAF50] font-semibold flex items-center gap-1">
+                  <Check className="w-3.5 h-3.5" />
+                  {totalLeads} Leads Loaded
                 </div>
               )}
             </div>
-
-            {/* Manual input */}
-            {!file && (
-              <textarea
-                id="manual-leads-input"
-                rows={3}
-                value={form.manualLeads}
-                onChange={(e) => setForm((p) => ({ ...p, manualLeads: e.target.value }))}
-                placeholder="john@example.com, jane@company.com, ..."
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-blue-500/50 transition-all duration-200 text-sm resize-none"
-              />
-            )}
-
-            {/* Lead count hint */}
-            {totalLeads > 0 && (
-              <p className="text-xs text-blue-400 flex items-center gap-1">
-                <Users className="w-3 h-3" /> {totalLeads} lead{totalLeads !== 1 ? 's' : ''} will be scheduled
-              </p>
-            )}
           </div>
+        </form>
 
-          {/* Sender Selection */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-slate-300">Sender *</label>
+        {/* Send Later Panel (Matches screenshot) */}
+        {sendLaterOpen && (
+          <div className="w-80 border-l border-slate-100 bg-white p-6 flex flex-col gap-5 shrink-0 z-10 shadow-sm animate-fade-in font-sans">
+            <h3 className="font-bold text-slate-800 text-sm">Send Later</h3>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-slate-400 font-semibold uppercase">Pick date & time</label>
+              <input
+                type="datetime-local"
+                value={form.startTime}
+                onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))}
+                className="w-full px-3 py-2 border border-slate-200 rounded text-sm text-slate-700 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-slate-400 font-semibold uppercase">Presets</label>
               <button
                 type="button"
-                onClick={handleAddEtherealSender}
-                disabled={creatingEthereal}
-                className="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                onClick={() => setPresetTime('tomorrow')}
+                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
               >
-                {creatingEthereal ? <Loader2 className="w-3 h-3 animate-spin" /> : '+'}
-                Add Ethereal Test Sender
+                Tomorrow
+              </button>
+              <button
+                type="button"
+                onClick={() => setPresetTime('tomorrow_10')}
+                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
+              >
+                Tomorrow, 10:00 AM
+              </button>
+              <button
+                type="button"
+                onClick={() => setPresetTime('tomorrow_11')}
+                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
+              >
+                Tomorrow, 11:00 AM
+              </button>
+              <button
+                type="button"
+                onClick={() => setPresetTime('tomorrow_15')}
+                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
+              >
+                Tomorrow, 3:00 PM
               </button>
             </div>
 
-            {loadingSenders ? (
-              <div className="h-10 rounded-lg bg-white/5 animate-pulse" />
-            ) : senders.length === 0 ? (
-              <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                No senders configured. Click "Add Ethereal Test Sender" above.
-              </p>
-            ) : (
-              <div className="relative">
-                <select
-                  id="sender-select"
-                  required
-                  value={form.senderId}
-                  onChange={(e) => setForm((p) => ({ ...p, senderId: e.target.value }))}
-                  className="w-full appearance-none px-3.5 py-2.5 pr-9 rounded-lg bg-white/5 border border-white/10 text-slate-200 focus:outline-none focus:border-blue-500/50 transition-all duration-200 text-sm"
-                >
-                  {senders.map((s) => (
-                    <option key={s.id} value={s.id} className="bg-[#111827]">
-                      {s.name} ({s.email})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-              </div>
-            )}
-          </div>
-
-          {/* Scheduling Config */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* Start Time */}
-            <div className="flex flex-col gap-1.5 sm:col-span-1">
-              <label className="text-sm font-medium text-slate-300 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-slate-500" /> Start Time *
-              </label>
-              <input
-                id="start-time-input"
-                type="datetime-local"
-                required
-                value={form.startTime}
-                onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-200 focus:outline-none focus:border-blue-500/50 transition-all duration-200 text-sm [color-scheme:dark]"
-              />
-            </div>
-
-            {/* Delay */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-300">Delay (seconds)</label>
-              <input
-                id="delay-input"
-                type="number"
-                min="1"
-                max="3600"
-                value={form.delaySeconds}
-                onChange={(e) => setForm((p) => ({ ...p, delaySeconds: e.target.value }))}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-200 focus:outline-none focus:border-blue-500/50 transition-all duration-200 text-sm"
-              />
-            </div>
-
-            {/* Hourly Limit */}
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-slate-300">Hourly Limit</label>
-              <input
-                id="hourly-limit-input"
-                type="number"
-                min="1"
-                max="10000"
-                value={form.hourlyLimit}
-                onChange={(e) => setForm((p) => ({ ...p, hourlyLimit: e.target.value }))}
-                className="w-full px-3.5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-slate-200 focus:outline-none focus:border-blue-500/50 transition-all duration-200 text-sm"
-              />
+            <div className="flex items-center justify-end gap-3 mt-auto pt-6 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSendLaterOpen(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setSendLaterOpen(false)}
+                className="px-4 py-2 text-sm font-semibold border border-[#4CAF50] text-[#4CAF50] rounded-full hover:bg-emerald-50 transition-colors"
+              >
+                Done
+              </button>
             </div>
           </div>
-
-          {/* Footer Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/8">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-4 py-2.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-white/8 transition-all duration-200"
-            >
-              Cancel
-            </button>
-            <button
-              id="schedule-submit-btn"
-              type="submit"
-              disabled={submitting}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-violet-600 text-white text-sm font-medium hover:from-blue-500 hover:to-violet-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-blue-500/20"
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Scheduling...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  Schedule {totalLeads > 0 ? `${totalLeads} Email${totalLeads !== 1 ? 's' : ''}` : 'Campaign'}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+        )}
       </div>
     </div>
   );

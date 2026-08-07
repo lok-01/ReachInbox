@@ -1,34 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Send, RefreshCw, TrendingUp, Mail, CheckCircle, AlertTriangle } from 'lucide-react';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
+import { Clock, Send, RefreshCw, Sliders, ChevronDown, LogOut, Plus, Search } from 'lucide-react';
 import JobsTable from '../components/JobsTable';
 import ComposeModal from '../components/ComposeModal';
 import { api } from '../api';
 import type { EmailJob, Pagination, StatsResponse } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 type Tab = 'scheduled' | 'sent';
 
-interface StatCardProps {
-  label: string;
-  value: number | undefined;
-  icon: React.ReactNode;
-  color: string;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => (
-  <div className={`flex items-center gap-3 p-4 rounded-xl border ${color} bg-white/3 backdrop-blur-sm`}>
-    <div className="p-2 rounded-lg bg-white/5">{icon}</div>
-    <div>
-      <p className="text-2xl font-bold text-slate-100">{value ?? 0}</p>
-      <p className="text-xs text-slate-500 mt-0.5">{label}</p>
-    </div>
-  </div>
-);
-
 const Dashboard: React.FC = () => {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('scheduled');
   const [composeOpen, setComposeOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const [scheduledJobs, setScheduledJobs] = useState<EmailJob[]>([]);
   const [scheduledPagination, setScheduledPagination] = useState<Pagination | null>(null);
@@ -115,144 +99,184 @@ const Dashboard: React.FC = () => {
     fetchStats();
   };
 
+  // Filter jobs based on search query
+  const filteredScheduledJobs = scheduledJobs.filter((job) =>
+    job.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.subject.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredSentJobs = sentJobs.filter((job) =>
+    job.recipient.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    job.subject.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const totalScheduledCount = (stats.PENDING ?? 0) + (stats.SCHEDULED ?? 0) + (stats.RATE_LIMITED ?? 0);
+  const totalSentCount = (stats.SENT ?? 0) + (stats.FAILED ?? 0);
+
   return (
-    <div className="flex min-h-screen bg-[#0b0f19]">
-      <Sidebar />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Ambient background blobs */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-glow" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-violet-600/10 rounded-full blur-3xl animate-glow" style={{ animationDelay: '2s' }} />
+    <div className="flex min-h-screen bg-white text-slate-800 font-sans select-none">
+      {/* 1. Left Sidebar Navigation Panel */}
+      <aside className="w-64 bg-[#FCFCFD] border-r border-slate-100 flex flex-col p-5 shrink-0 select-none">
+        {/* Brand Logo "ONE" */}
+        <div className="h-10 flex items-center mb-6 px-1">
+          <span className="text-xl font-black text-black tracking-widest font-mono">
+            ONE
+          </span>
         </div>
 
-        <Header onCompose={() => setComposeOpen(true)} />
-
-        <main className="relative flex-1 px-8 py-8 overflow-y-auto">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-100">Email Dashboard</h1>
-          <p className="text-slate-500 text-sm mt-1">Monitor and manage your email scheduling campaigns.</p>
-        </div>
-
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-          <StatCard
-            label="Scheduled"
-            value={(stats.PENDING ?? 0) + (stats.SCHEDULED ?? 0) + (stats.RATE_LIMITED ?? 0)}
-            icon={<Clock className="w-4 h-4 text-blue-400" />}
-            color="border-blue-500/15"
-          />
-          <StatCard
-            label="Sent"
-            value={stats.SENT}
-            icon={<CheckCircle className="w-4 h-4 text-emerald-400" />}
-            color="border-emerald-500/15"
-          />
-          <StatCard
-            label="Failed"
-            value={stats.FAILED}
-            icon={<AlertTriangle className="w-4 h-4 text-red-400" />}
-            color="border-red-500/15"
-          />
-          <StatCard
-            label="Rate Limited"
-            value={stats.RATE_LIMITED}
-            icon={<TrendingUp className="w-4 h-4 text-violet-400" />}
-            color="border-violet-500/15"
-          />
-        </div>
-
-        {/* Tabs + Refresh */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-white/5 border border-white/8 font-sans">
-            <button
-              id="tab-scheduled"
-              onClick={() => setActiveTab('scheduled')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                activeTab === 'scheduled'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              Scheduled
-              {((stats.PENDING ?? 0) + (stats.SCHEDULED ?? 0) + (stats.RATE_LIMITED ?? 0)) > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'scheduled' ? 'bg-white/20' : 'bg-white/10'}`}>
-                  {(stats.PENDING ?? 0) + (stats.SCHEDULED ?? 0) + (stats.RATE_LIMITED ?? 0)}
-                </span>
+        {/* Active User Card with Dropdown Arrow & Logout */}
+        {user && (
+          <div className="group relative flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-white shadow-sm mb-6">
+            <div className="flex items-center gap-3 min-w-0">
+              {user.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full ring-2 ring-slate-100" />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-700 text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
               )}
-            </button>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800 truncate leading-tight">{user.name}</p>
+                <p className="text-[10px] text-slate-400 truncate mt-0.5">{user.email}</p>
+              </div>
+            </div>
+            
+            {/* Logout Popup/Button */}
             <button
-              id="tab-sent"
-              onClick={() => setActiveTab('sent')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                activeTab === 'sent'
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+              onClick={logout}
+              title="Logout"
+              className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
             >
-              <Send className="w-4 h-4" />
-              Sent
-              {((stats.SENT ?? 0) + (stats.FAILED ?? 0)) > 0 && (
-                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === 'sent' ? 'bg-white/20' : 'bg-white/10'}`}>
-                  {(stats.SENT ?? 0) + (stats.FAILED ?? 0)}
-                </span>
-              )}
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          <button
-            onClick={handleRefresh}
-            id="refresh-btn"
-            title="Refresh"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-white/8 border border-white/8 transition-all duration-200"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingScheduled || loadingSent ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
-
-        {/* Table */}
-        {activeTab === 'scheduled' ? (
-          <JobsTable
-            jobs={scheduledJobs}
-            loading={loadingScheduled}
-            pagination={scheduledPagination}
-            onPageChange={handleScheduledPageChange}
-            type="scheduled"
-          />
-        ) : (
-          <JobsTable
-            jobs={sentJobs}
-            loading={loadingSent}
-            pagination={sentPagination}
-            onPageChange={handleSentPageChange}
-            type="sent"
-          />
         )}
 
-        {/* Empty action hint */}
-        {!loadingScheduled && scheduledJobs.length === 0 && activeTab === 'scheduled' && (
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setComposeOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-blue-600/20 border border-blue-500/30 text-blue-400 text-sm font-medium hover:bg-blue-600/30 transition-all duration-200"
-            >
-              <Mail className="w-4 h-4" />
-              Schedule your first campaign
-            </button>
+        {/* Compose Button */}
+        <button
+          onClick={() => setComposeOpen(true)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-[#4CAF50] text-[#4CAF50] hover:bg-emerald-50 transition-all font-semibold text-sm mb-8 shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Compose
+        </button>
+
+        {/* Core Menu Label */}
+        <div className="px-2 mb-2">
+          <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">CORE</span>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex flex-col gap-1.5">
+          <button
+            onClick={() => {
+              setActiveTab('scheduled');
+              setComposeOpen(false);
+            }}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'scheduled' && !composeOpen
+                ? 'bg-emerald-50 text-[#2E7D32]'
+                : 'text-[#5F6368] hover:bg-slate-50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Clock className="w-4 h-4" />
+              <span>Scheduled</span>
+            </div>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100/50">
+              {totalScheduledCount}
+            </span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveTab('sent');
+              setComposeOpen(false);
+            }}
+            className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'sent' && !composeOpen
+                ? 'bg-emerald-50 text-[#2E7D32]'
+                : 'text-[#5F6368] hover:bg-slate-50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Send className="w-4 h-4" />
+              <span>Sent</span>
+            </div>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100/50">
+              {totalSentCount}
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      {/* 2. Right Main Panel */}
+      <main className="flex-1 flex flex-col min-w-0 bg-white">
+        {composeOpen ? (
+          /* Render Compose Screen Full Width */
+          <ComposeModal
+            isOpen={true}
+            onClose={() => setComposeOpen(false)}
+            onSuccess={handleComposeSuccess}
+          />
+        ) : (
+          /* Render Scheduled/Sent List View */
+          <div className="flex-1 flex flex-col">
+            {/* Top Toolbar (Search, Filter, Refresh) */}
+            <div className="flex items-center justify-between px-8 py-4 border-b border-slate-100">
+              {/* Search Bar Container */}
+              <div className="relative w-80">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-full text-sm bg-slate-50/50 focus:outline-none focus:border-slate-300 transition-colors"
+                />
+              </div>
+
+              {/* Toolbar Controls */}
+              <div className="flex items-center gap-3">
+                <button
+                  title="Filter"
+                  className="p-2 text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  <Sliders className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleRefresh}
+                  title="Refresh"
+                  className="p-2 text-slate-400 hover:text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingScheduled || loadingSent ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* List Table of Items */}
+            <div className="flex-1 overflow-y-auto">
+              {activeTab === 'scheduled' ? (
+                <JobsTable
+                  jobs={filteredScheduledJobs}
+                  loading={loadingScheduled}
+                  pagination={scheduledPagination}
+                  onPageChange={handleScheduledPageChange}
+                  type="scheduled"
+                />
+              ) : (
+                <JobsTable
+                  jobs={filteredSentJobs}
+                  loading={loadingSent}
+                  pagination={sentPagination}
+                  onPageChange={handleSentPageChange}
+                  type="sent"
+                />
+              )}
+            </div>
           </div>
         )}
       </main>
-
-      {/* Compose Modal */}
-      <ComposeModal
-        isOpen={composeOpen}
-        onClose={() => setComposeOpen(false)}
-        onSuccess={handleComposeSuccess}
-      />
-      </div>
     </div>
   );
 };
