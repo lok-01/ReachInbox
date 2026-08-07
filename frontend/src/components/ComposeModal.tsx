@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Paperclip, Clock, Upload, Loader2, ChevronDown, Check, RotateCcw, RotateCw, Bold, Italic, Underline, AlignLeft, List, ListOrdered, Quote, Image, Strikethrough, X } from 'lucide-react';
+import { Paperclip, Clock, Upload, Loader2, ChevronDown, Check, Bold, Italic, Underline, List, Image, X, Minus, Maximize2, Minimize2, Plus } from 'lucide-react';
 import { api } from '../api';
 import type { Sender } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -46,6 +46,10 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
   const [sendLaterOpen, setSendLaterOpen] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentInfo[]>([]);
   
+  // Resize states matching "expand/compress window" requirements
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const editorRef = useRef<HTMLDivElement>(null);
@@ -254,6 +258,8 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
     setAttachments([]);
     setError(null);
     setSendLaterOpen(false);
+    setIsMinimized(false);
+    setIsMaximized(false);
     if (editorRef.current) {
       editorRef.current.innerHTML = '';
     }
@@ -269,9 +275,44 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
   const visibleEmails = parsedEmails.slice(0, 3);
   const extraCount = parsedEmails.length - 3;
 
+  // Render minimized header pill at the bottom right
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-0 right-12 w-80 h-12 bg-slate-900 border border-slate-800 rounded-t-xl shadow-2xl flex items-center justify-between px-4 z-50 select-none animate-fade-in font-sans">
+        <span 
+          className="font-bold text-xs text-white cursor-pointer flex-grow py-3"
+          onClick={() => setIsMinimized(false)}
+        >
+          New Message ({totalLeads > 0 ? `${totalLeads} leads` : 'Draft'})
+        </span>
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={() => setIsMinimized(false)}
+            title="Expand Composer"
+            className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+          </button>
+          <button 
+            onClick={handleClose}
+            title="Close"
+            className="p-1 hover:bg-red-600 rounded text-slate-400 hover:text-white transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Floating responsive layouts
+  const containerClasses = isMaximized
+    ? 'fixed inset-6 bg-white border border-slate-200 rounded-2xl shadow-2xl flex flex-col z-40 transition-all duration-300 font-sans'
+    : 'fixed bottom-0 right-12 w-[620px] h-[580px] bg-white border border-slate-200 rounded-t-2xl shadow-2xl flex flex-col z-40 transition-all duration-300 font-sans';
+
   return (
-    <div className="flex-1 bg-white min-h-screen flex flex-col font-sans border-l border-slate-100">
-      {/* Hidden file input for image uploads inside contentEditable */}
+    <div className={containerClasses}>
+      {/* Hidden file inputs */}
       <input
         ref={imageInputRef}
         type="file"
@@ -280,71 +321,65 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
         onChange={handleImageUpload}
       />
 
-      {/* Top Navigation / Toolbar */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
-        <div className="flex items-center gap-3">
-          <button onClick={handleClose} type="button" className="p-1 text-slate-500 hover:text-slate-800 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <span className="font-bold text-slate-800 text-base">Compose New Email</span>
-        </div>
+      {/* Top Header Toolbar */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-[#FCFCFD] rounded-t-2xl select-none">
+        <span className="font-bold text-slate-800 text-sm">Compose New Email</span>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Minimize / Compress button */}
           <button
             type="button"
-            onClick={handleImageButtonClick}
-            title="Attach files or images"
-            className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+            onClick={() => setIsMinimized(true)}
+            title="Compress/Minimize Window"
+            className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
           >
-            <Paperclip className="w-4 h-4" />
+            <Minus className="w-3.5 h-3.5" />
           </button>
+
+          {/* Maximize / Expand button */}
           <button
             type="button"
-            onClick={() => setSendLaterOpen(!sendLaterOpen)}
-            className={`p-2 rounded-lg transition-colors ${sendLaterOpen ? 'text-[#4CAF50] bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
+            onClick={() => setIsMaximized(!isMaximized)}
+            title={isMaximized ? "Restore size" : "Expand/Maximize Window"}
+            className="p-1.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
           >
-            <Clock className="w-4 h-4" />
+            {isMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
-          
+
+          {/* Close button */}
           <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="flex items-center gap-1.5 px-5 py-2 rounded-full border border-[#4CAF50] text-[#4CAF50] text-sm font-semibold hover:bg-emerald-50 transition-colors disabled:opacity-50"
+            type="button"
+            onClick={handleClose}
+            title="Close"
+            className="p-1.5 hover:bg-red-50 rounded text-slate-400 hover:text-red-600 transition-colors"
           >
-            {submitting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : isScheduledLater ? (
-              'Send Later'
-            ) : (
-              'Send'
-            )}
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      <div className="flex-1 flex relative">
-        {/* Main Compose Form */}
-        <div className="flex-1 flex flex-col p-6 gap-5 min-w-0">
+      {/* Inner layout with scroll capability */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Form Editor */}
+        <div className="flex-1 flex flex-col p-5 gap-4 overflow-y-auto">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg animate-fade-in">
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs rounded-lg animate-fade-in">
               {error}
             </div>
           )}
 
           {/* From Row */}
-          <div className="flex items-center py-2 border-b border-slate-100 gap-4">
-            <span className="w-16 text-sm text-slate-400 font-medium">From</span>
+          <div className="flex items-center py-1 border-b border-slate-100 gap-4">
+            <span className="w-12 text-xs text-slate-400 font-semibold uppercase">From</span>
             <div className="flex-1 flex items-center gap-3">
               {loadingSenders ? (
-                <div className="w-48 h-8 bg-slate-50 animate-pulse rounded" />
-              ) : senders.length === 0 ? (
-                <span className="text-xs text-amber-600">No senders found. Click "+" to generate one.</span>
+                <div className="w-36 h-6 bg-slate-50 animate-pulse rounded" />
               ) : (
                 <div className="relative flex items-center">
                   <select
                     value={form.senderId}
                     onChange={(e) => setForm((p) => ({ ...p, senderId: e.target.value }))}
-                    className="appearance-none pr-8 pl-3 py-1 bg-slate-50 border border-slate-200 rounded text-sm text-slate-700 font-medium focus:outline-none cursor-pointer"
+                    className="appearance-none pr-8 pl-3 py-1 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700 font-medium focus:outline-none cursor-pointer"
                   >
                     {senders.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -352,7 +387,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2 pointer-events-none" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 pointer-events-none" />
                 </div>
               )}
               
@@ -360,24 +395,22 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                 type="button"
                 onClick={handleAddEtherealSender}
                 disabled={creatingEthereal}
-                className="text-xs text-[#4CAF50] hover:text-[#43A047] font-semibold border border-emerald-200 bg-emerald-50/50 px-2.5 py-1 rounded transition-colors disabled:opacity-50"
+                className="text-[10px] text-[#2E7D32] hover:text-[#1B5E20] font-bold border border-emerald-100 bg-emerald-50/50 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
               >
-                {creatingEthereal ? <Loader2 className="w-3 h-3 animate-spin" /> : '+ Add Sender'}
+                {creatingEthereal ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : '+ Add Sender'}
               </button>
             </div>
           </div>
 
-          {/* To Row (Matches Figma Tag Badges Layout) */}
-          <div className="flex items-start py-2 border-b border-slate-100 gap-4 min-h-[44px]">
-            <span className="w-16 text-sm text-slate-400 font-medium mt-1">To</span>
+          {/* To Row */}
+          <div className="flex items-start py-1 border-b border-slate-100 gap-4 min-h-[38px]">
+            <span className="w-12 text-xs text-slate-400 font-semibold uppercase mt-1.5">To</span>
             <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
-              
-              {/* Tags Container */}
-              <div className="flex-1 flex items-center gap-2 flex-wrap min-w-0">
+              <div className="flex-1 flex items-center gap-1.5 flex-wrap min-w-0">
                 {visibleEmails.map((email, index) => (
                   <div
                     key={email}
-                    className="flex items-center gap-1 px-3 py-1 rounded-full border border-emerald-200 bg-[#E8F5E9] text-[#2E7D32] text-xs font-semibold"
+                    className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-200 bg-[#E8F5E9] text-[#2E7D32] text-[10px] font-bold"
                   >
                     <span>{email}</span>
                     <button
@@ -385,18 +418,17 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                       onClick={() => removeEmailTag(index)}
                       className="hover:text-red-600 transition-colors"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-2.5 h-2.5" />
                     </button>
                   </div>
                 ))}
                 
                 {extraCount > 0 && (
-                  <span className="px-3 py-1 rounded-full border border-emerald-200 bg-[#E8F5E9] text-[#2E7D32] text-xs font-semibold">
+                  <span className="px-2.5 py-0.5 rounded-full border border-emerald-200 bg-[#E8F5E9] text-[#2E7D32] text-[10px] font-bold">
                     +{extraCount}
                   </span>
                 )}
 
-                {/* Inline Email Input */}
                 <input
                   type="text"
                   placeholder={parsedEmails.length === 0 ? "Enter recipient email(s) manually..." : ""}
@@ -404,11 +436,10 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                   onChange={(e) => setEmailInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onBlur={handleBlur}
-                  className="flex-grow min-w-[150px] bg-transparent text-sm text-slate-700 focus:outline-none placeholder:text-slate-300 py-1"
+                  className="flex-grow min-w-[120px] bg-transparent text-xs text-slate-700 focus:outline-none placeholder:text-slate-300 py-1"
                 />
               </div>
 
-              {/* Upload List Trigger */}
               <div className="shrink-0">
                 <input
                   ref={fileInputRef}
@@ -421,9 +452,9 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 text-xs text-[#4CAF50] hover:text-[#43A047] font-semibold transition-colors"
+                  className="flex items-center gap-1 text-[10px] text-[#2E7D32] hover:text-[#1B5E20] font-bold transition-colors"
                 >
-                  <Upload className="w-3.5 h-3.5" />
+                  <Upload className="w-3 h-3" />
                   Upload List
                 </button>
               </div>
@@ -431,128 +462,103 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
           </div>
 
           {/* Subject Row */}
-          <div className="flex items-center py-2 border-b border-slate-100 gap-4">
-            <span className="w-16 text-sm text-slate-400 font-medium">Subject</span>
+          <div className="flex items-center py-1 border-b border-slate-100 gap-4">
+            <span className="w-12 text-xs text-slate-400 font-semibold uppercase">Subject</span>
             <input
               type="text"
               required
               value={form.subject}
               onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
               placeholder="Enter subject line..."
-              className="flex-1 bg-transparent text-sm text-slate-700 focus:outline-none placeholder:text-slate-300"
+              className="flex-1 bg-transparent text-xs text-slate-700 focus:outline-none placeholder:text-slate-300"
             />
           </div>
 
-          {/* Delay & Hourly Limit config */}
-          <div className="flex flex-wrap items-center py-2 border-b border-slate-100 gap-y-3 gap-x-8">
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-400 font-medium">Delay between 2 emails</span>
+          {/* Delay & Limit Config */}
+          <div className="flex flex-wrap items-center py-1 border-b border-slate-100 gap-y-2 gap-x-6">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">Delay</span>
               <input
                 type="number"
                 min="0"
                 value={form.delaySeconds}
                 onChange={(e) => setForm((p) => ({ ...p, delaySeconds: e.target.value }))}
-                className="w-16 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-center text-sm font-medium text-slate-700 focus:outline-none"
+                className="w-12 px-1 py-0.5 rounded bg-slate-50 border border-slate-200 text-center text-xs font-semibold text-slate-700 focus:outline-none"
               />
+              <span className="text-[10px] text-slate-400 font-medium lowercase">sec</span>
             </div>
             
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-400 font-medium">Hourly Limit</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">Hourly Limit</span>
               <input
                 type="number"
                 min="1"
                 value={form.hourlyLimit}
                 onChange={(e) => setForm((p) => ({ ...p, hourlyLimit: e.target.value }))}
-                className="w-16 px-2 py-1 rounded bg-slate-50 border border-slate-200 text-center text-sm font-medium text-slate-700 focus:outline-none"
+                className="w-12 px-1 py-0.5 rounded bg-slate-50 border border-slate-200 text-center text-xs font-semibold text-slate-700 focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Email Body & Text Area Editor */}
-          <div className="flex-1 flex flex-col min-h-[300px] border border-slate-100 rounded-lg overflow-hidden mt-2 bg-slate-50/30">
-            {/* Real contentEditable Rich Text Area */}
+          {/* Editor Container */}
+          <div className="flex-grow flex flex-col min-h-[180px] border border-slate-100 rounded-xl overflow-hidden mt-1 bg-slate-50/20">
             <div
               ref={editorRef}
               contentEditable
-              {...({ placeholder: "Type Your Reply..." } as any)}
-              className="flex-1 p-4 bg-transparent text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none overflow-y-auto select-text font-sans"
-              style={{ minHeight: '220px' }}
+              {...({ placeholder: "Type Your Message..." } as any)}
+              className="flex-grow p-3 bg-transparent text-xs text-slate-700 placeholder:text-slate-300 focus:outline-none overflow-y-auto select-text font-sans"
+              style={{ minHeight: '120px' }}
             />
 
-            {/* Render Uploaded Attachment Preview Cards at the bottom of the editor */}
             {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-4 p-4 bg-white border-t border-slate-100 select-none">
+              <div className="flex flex-wrap gap-2.5 p-3 bg-white border-t border-slate-100 select-none">
                 {attachments.map((att, idx) => (
                   <div
                     key={idx}
-                    className="w-40 border border-slate-200 bg-slate-50/50 rounded-xl overflow-hidden shadow-sm flex flex-col relative group animate-fade-in"
+                    className="w-28 border border-slate-100 bg-slate-50/50 rounded-lg overflow-hidden flex flex-col relative group animate-fade-in"
                   >
-                    <img src={att.dataUrl} alt={att.name} className="h-20 w-full object-cover bg-slate-100" />
-                    <div className="p-2 bg-white flex flex-col gap-0.5">
-                      <span className="text-[10px] font-bold text-slate-800 truncate" title={att.name}>
-                        {att.name}
-                      </span>
-                      <span className="text-[9px] text-slate-400 font-semibold">{att.size}</span>
+                    <img src={att.dataUrl} alt={att.name} className="h-14 w-full object-cover bg-slate-100" />
+                    <div className="p-1 bg-white flex flex-col gap-0.5">
+                      <span className="text-[8px] font-bold text-slate-800 truncate" title={att.name}>{att.name}</span>
+                      <span className="text-[7px] text-slate-400 font-semibold">{att.size}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                      className="absolute top-1.5 right-1.5 p-1 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                      className="absolute top-1 right-1 p-0.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors opacity-0 group-hover:opacity-100"
                     >
-                      <X className="w-2.5 h-2.5" />
+                      <X className="w-2 h-2" />
                     </button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Custom Rich Formatting Toolbar (Matches screenshot editor toolbar exactly) */}
-            <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-2 select-none">
-              <div className="flex flex-wrap items-center gap-1 text-slate-400">
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('undo')} title="Undo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('redo')} title="Redo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
-                  <RotateCw className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-slate-200">|</span>
-                
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('bold')} title="Bold" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+            {/* Bottom Toolbar */}
+            <div className="flex items-center justify-between border-t border-slate-100 bg-white px-3 py-1.5 select-none">
+              <div className="flex flex-wrap items-center gap-0.5 text-slate-400">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('bold')} title="Bold" className="p-1 hover:text-slate-800 hover:bg-slate-50 rounded">
                   <Bold className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('italic')} title="Italic" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('italic')} title="Italic" className="p-1 hover:text-slate-800 hover:bg-slate-50 rounded">
                   <Italic className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('underline')} title="Underline" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('underline')} title="Underline" className="p-1 hover:text-slate-800 hover:bg-slate-50 rounded">
                   <Underline className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-slate-200">|</span>
+                <span className="text-slate-200 mx-1">|</span>
 
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('justifyLeft')} title="Align Left" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
-                  <AlignLeft className="w-3.5 h-3.5" />
-                </button>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('insertUnorderedList')} title="Bullet List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('insertUnorderedList')} title="List" className="p-1 hover:text-slate-800 hover:bg-slate-50 rounded">
                   <List className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('insertOrderedList')} title="Numbered List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
-                  <ListOrdered className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-slate-200">|</span>
-
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('formatBlock', 'blockquote')} title="Blockquote" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
-                  <Quote className="w-3.5 h-3.5" />
-                </button>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={handleImageButtonClick} title="Insert Image" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={handleImageButtonClick} title="Insert Image" className="p-1 hover:text-slate-800 hover:bg-slate-50 rounded">
                   <Image className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('strikeThrough')} title="Strikethrough" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
-                  <Strikethrough className="w-3.5 h-3.5" />
-                </button>
               </div>
-              
+
               {totalLeads > 0 && (
-                <div className="text-xs text-[#2E7D32] font-semibold flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5" />
+                <div className="text-[10px] text-[#2E7D32] font-bold flex items-center gap-0.5">
+                  <Check className="w-3 h-3" />
                   {totalLeads} Lead{totalLeads !== 1 ? 's' : ''} Loaded
                 </div>
               )}
@@ -560,71 +566,73 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
           </div>
         </div>
 
-        {/* Send Later Panel */}
+        {/* Send Later Tab */}
         {sendLaterOpen && (
-          <div className="w-80 border-l border-slate-100 bg-white p-6 flex flex-col gap-5 shrink-0 z-10 shadow-sm animate-fade-in font-sans">
-            <h3 className="font-bold text-slate-800 text-sm">Send Later</h3>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-400 font-semibold uppercase">Pick date & time</label>
+          <div className="w-64 border-l border-slate-100 bg-[#FCFCFD] p-4 flex flex-col gap-4 shrink-0 z-10 shadow-sm animate-fade-in">
+            <h4 className="font-bold text-slate-800 text-xs">Send Later</h4>
+            <div className="flex flex-col gap-1">
+              <label className="text-[9px] text-slate-400 font-bold uppercase">Time</label>
               <input
                 type="datetime-local"
                 value={form.startTime}
                 onChange={(e) => setForm((p) => ({ ...p, startTime: e.target.value }))}
-                className="w-full px-3 py-2 border border-slate-200 rounded text-sm text-slate-700 focus:outline-none focus:border-emerald-500"
+                className="w-full px-2 py-1 border border-slate-200 rounded text-xs text-slate-700 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-xs text-slate-400 font-semibold uppercase">Presets</label>
-              <button
-                type="button"
-                onClick={() => setPresetTime('tomorrow')}
-                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
-              >
-                Tomorrow
-              </button>
-              <button
-                type="button"
-                onClick={() => setPresetTime('tomorrow_10')}
-                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
-              >
-                Tomorrow, 10:00 AM
-              </button>
-              <button
-                type="button"
-                onClick={() => setPresetTime('tomorrow_11')}
-                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
-              >
-                Tomorrow, 11:00 AM
-              </button>
-              <button
-                type="button"
-                onClick={() => setPresetTime('tomorrow_15')}
-                className="w-full text-left px-3 py-2.5 rounded hover:bg-slate-50 text-sm text-slate-700 transition-colors"
-              >
-                Tomorrow, 3:00 PM
-              </button>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 mt-auto pt-6 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setSendLaterOpen(false)}
-                className="px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => setSendLaterOpen(false)}
-                className="px-4 py-2 text-sm font-semibold border border-[#4CAF50] text-[#4CAF50] rounded-full hover:bg-emerald-50 transition-colors"
-              >
-                Done
-              </button>
+            <div className="flex flex-col gap-1 mt-2">
+              <label className="text-[9px] text-slate-400 font-bold uppercase">Presets</label>
+              <button type="button" onClick={() => setPresetTime('tomorrow')} className="w-full text-left px-2 py-1.5 rounded hover:bg-slate-100 text-xs text-slate-600 transition-colors">Tomorrow</button>
+              <button type="button" onClick={() => setPresetTime('tomorrow_10')} className="w-full text-left px-2 py-1.5 rounded hover:bg-slate-100 text-xs text-slate-600 transition-colors">Tomorrow, 10:00 AM</button>
+              <button type="button" onClick={() => setPresetTime('tomorrow_11')} className="w-full text-left px-2 py-1.5 rounded hover:bg-slate-100 text-xs text-slate-600 transition-colors">Tomorrow, 11:00 AM</button>
             </div>
           </div>
         )}
+      </div>
+
+      {/* Footer / Submit Buttons */}
+      <div className="border-t border-slate-100 bg-[#FCFCFD] px-5 py-3.5 flex items-center justify-between rounded-b-2xl select-none">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleImageButtonClick}
+            title="Attach file / image"
+            className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            <Paperclip className="w-4 h-4" />
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setSendLaterOpen(!sendLaterOpen)}
+            className={`p-2 rounded-lg transition-colors ${sendLaterOpen ? 'text-[#2E7D32] bg-emerald-50' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            <Clock className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-bold shadow-md shadow-emerald-500/10 hover:from-emerald-600 hover:to-green-700 transition-colors disabled:opacity-50"
+          >
+            {submitting ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : isScheduledLater ? (
+              'Schedule Later'
+            ) : (
+              'Send Campaign'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -270,27 +270,18 @@ const Dashboard: React.FC = () => {
 
         {/* Compose Button */}
         <button
-          onClick={() => {
-            setComposeOpen(true);
-            setSelectedJob(null);
-          }}
+          onClick={() => setComposeOpen(true)}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full border border-[#4CAF50] text-[#4CAF50] hover:bg-emerald-50 transition-all font-semibold text-sm mb-8 shadow-sm"
         >
           <Plus className="w-4 h-4" />
           Compose
         </button>
 
-        {/* Core Menu Label */}
-        <div className="px-2 mb-2">
-          <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">CORE</span>
-        </div>
-
         {/* Navigation Tabs */}
         <div className="flex flex-col gap-1.5">
           <button
             onClick={() => {
               setActiveTab('overview');
-              setComposeOpen(false);
               setSelectedJob(null);
             }}
             className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -308,7 +299,6 @@ const Dashboard: React.FC = () => {
           <button
             onClick={() => {
               setActiveTab('scheduled');
-              setComposeOpen(false);
               setSelectedJob(null);
             }}
             className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -329,7 +319,6 @@ const Dashboard: React.FC = () => {
           <button
             onClick={() => {
               setActiveTab('sent');
-              setComposeOpen(false);
               setSelectedJob(null);
             }}
             className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -350,15 +339,8 @@ const Dashboard: React.FC = () => {
       </aside>
 
       {/* 2. Right Main Panel */}
-      <main className="flex-1 flex flex-col min-w-0 bg-white overflow-hidden">
-        {composeOpen ? (
-          /* Render Compose Screen Full Width */
-          <ComposeModal
-            isOpen={true}
-            onClose={() => setComposeOpen(false)}
-            onSuccess={handleComposeSuccess}
-          />
-        ) : activeTab === 'overview' ? (
+      <main className="flex-1 flex flex-col min-w-0 bg-white overflow-hidden relative">
+        {activeTab === 'overview' ? (
           /* Overview View (Summary Analytics Dashboard) */
           <div className="flex-1 flex flex-col h-full bg-[#FCFCFD]/50 overflow-y-auto p-8 font-sans">
             {/* Welcome banner */}
@@ -812,6 +794,15 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* Floating Compose Dock Overlay */}
+        {composeOpen && (
+          <ComposeModal
+            isOpen={true}
+            onClose={() => setComposeOpen(false)}
+            onSuccess={handleComposeSuccess}
+          />
         )}
       </main>
 
