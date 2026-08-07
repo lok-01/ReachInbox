@@ -290,7 +290,12 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
         </div>
 
         <div className="flex items-center gap-4">
-          <button type="button" className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+          <button
+            type="button"
+            onClick={handleImageButtonClick}
+            title="Attach files or images"
+            className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
+          >
             <Paperclip className="w-4 h-4" />
           </button>
           <button
