@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Paperclip, Clock, Upload, Loader2, ChevronDown, Check, RotateCcw, RotateCw, Bold, Italic, Underline, AlignLeft, List, ListOrdered, Quote, Image, Strikethrough, Plus, X } from 'lucide-react';
+import { ArrowLeft, Paperclip, Clock, Upload, Loader2, ChevronDown, Check, RotateCcw, RotateCw, Bold, Italic, Underline, AlignLeft, List, ListOrdered, Quote, Image, Strikethrough, X } from 'lucide-react';
 import { api } from '../api';
 import type { Sender } from '../types';
 import { useAuth } from '../context/AuthContext';
