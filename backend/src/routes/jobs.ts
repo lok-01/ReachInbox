@@ -122,4 +122,39 @@ router.get('/stats', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/jobs/:id
+ * Returns details for a single job.
+ */
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const job = await prisma.emailJob.findUnique({
+      where: { id },
+      include: { sender: { select: { email: true, name: true } } },
+    }) as any;
+    
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+    
+    return res.json({
+      id: job.id,
+      recipient: job.recipient,
+      subject: job.subject,
+      body: job.body,
+      status: job.status,
+      scheduledAt: job.scheduledAt,
+      sentAt: job.sentAt,
+      sender: job.sender.email,
+      senderName: job.sender.name,
+      error: job.error,
+      createdAt: job.createdAt,
+    });
+  } catch (err) {
+    console.error('[Jobs] GET /:id error:', err);
+    return res.status(500).json({ error: 'Failed to fetch job details' });
+  }
+});
+
 export default router;

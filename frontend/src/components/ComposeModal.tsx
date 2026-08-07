@@ -173,10 +173,13 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
+        // 1. Add to attachments preview lists at bottom
         setAttachments((prev) => [
           ...prev,
           { name: file.name, size: sizeStr, dataUrl: base64 }
         ]);
+        // 2. Insert inline into editor at the cursor
+        format('insertImage', base64);
       };
       reader.readAsDataURL(file);
     }
@@ -501,43 +504,43 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
             {/* Custom Rich Formatting Toolbar (Matches screenshot editor toolbar exactly) */}
             <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-2 select-none">
               <div className="flex flex-wrap items-center gap-1 text-slate-400">
-                <button type="button" onClick={() => format('undo')} title="Undo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('undo')} title="Undo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={() => format('redo')} title="Redo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('redo')} title="Redo" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <RotateCw className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-slate-200">|</span>
                 
-                <button type="button" onClick={() => format('bold')} title="Bold" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('bold')} title="Bold" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <Bold className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={() => format('italic')} title="Italic" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('italic')} title="Italic" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <Italic className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={() => format('underline')} title="Underline" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('underline')} title="Underline" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <Underline className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-slate-200">|</span>
 
-                <button type="button" onClick={() => format('justifyLeft')} title="Align Left" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('justifyLeft')} title="Align Left" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <AlignLeft className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={() => format('insertUnorderedList')} title="Bullet List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('insertUnorderedList')} title="Bullet List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <List className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={() => format('insertOrderedList')} title="Numbered List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('insertOrderedList')} title="Numbered List" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <ListOrdered className="w-3.5 h-3.5" />
                 </button>
                 <span className="text-slate-200">|</span>
 
-                <button type="button" onClick={() => format('formatBlock', 'blockquote')} title="Blockquote" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('formatBlock', 'blockquote')} title="Blockquote" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <Quote className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={handleImageButtonClick} title="Insert Image" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={handleImageButtonClick} title="Insert Image" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <Image className="w-3.5 h-3.5" />
                 </button>
-                <button type="button" onClick={() => format('strikeThrough')} title="Strikethrough" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => format('strikeThrough')} title="Strikethrough" className="p-1.5 hover:text-slate-800 hover:bg-slate-50 rounded transition-colors">
                   <Strikethrough className="w-3.5 h-3.5" />
                 </button>
               </div>

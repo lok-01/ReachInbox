@@ -56,6 +56,11 @@ export const api = {
     return res.data;
   },
 
+  getJobDetails: async (id: string): Promise<any> => {
+    const res = await apiClient.get(`/jobs/${id}`);
+    return res.data;
+  },
+
   // Campaigns
   scheduleCampaign: async (formData: FormData): Promise<{
     message: string;

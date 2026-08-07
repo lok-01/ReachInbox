@@ -115,20 +115,35 @@ const Dashboard: React.FC = () => {
     }
   }, []);
 
+  const refreshSelectedJobDetails = useCallback(async (jobId: string) => {
+    try {
+      const data = await api.getJobDetails(jobId);
+      setSelectedJob(data);
+    } catch (err) {
+      console.error('Failed to refresh selected job details:', err);
+    }
+  }, []);
+
   // Initial load and periodic refresh
   useEffect(() => {
     fetchScheduled(scheduledPage);
     fetchSent(sentPage);
     fetchStats();
+    if (selectedJob) {
+      refreshSelectedJobDetails(selectedJob.id);
+    }
 
     const interval = setInterval(() => {
       fetchScheduled(scheduledPage);
       fetchSent(sentPage);
       fetchStats();
+      if (selectedJob) {
+        refreshSelectedJobDetails(selectedJob.id);
+      }
     }, 15000); // Refresh every 15s
 
     return () => clearInterval(interval);
-  }, [fetchScheduled, fetchSent, fetchStats, scheduledPage, sentPage]);
+  }, [fetchScheduled, fetchSent, fetchStats, refreshSelectedJobDetails, selectedJob?.id, scheduledPage, sentPage]);
 
   const handleScheduledPageChange = (page: number) => {
     setScheduledPage(page);
@@ -152,6 +167,9 @@ const Dashboard: React.FC = () => {
     fetchScheduled(scheduledPage);
     fetchSent(sentPage);
     fetchStats();
+    if (selectedJob) {
+      refreshSelectedJobDetails(selectedJob.id);
+    }
   };
 
   // Filter jobs based on search query
