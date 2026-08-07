@@ -1,4 +1,4 @@
-#  ReachInbox — Full-Stack Email Job Scheduler
+#  ReachInbox.AI — Full-Stack Email Job Scheduler
 
 A production-grade, highly-resilient, and scalable email scheduling and monitoring service + dashboard. It allows users to schedule cold email campaigns, rotating across multiple SMTP accounts, with per-sender hourly rate limits and real-time logging.
 
@@ -145,7 +145,7 @@ To ensure no emails are lost if the server crashes or restarts:
 
 ---
 
-## 📝 Assumptions, Shortcuts & Trade-offs
+## Assumptions, Shortcuts & Trade-offs
 1. **Google OAuth Token Logic**: The backend verifies Google OAuth tokens directly. For full production security, an access/refresh token JWT rotation pattern would be added to keep sessions alive.
 2. **SQLite vs. MySQL**: MySQL is used to leverage enterprise indexing and ACID transactional safety for logs.
 3. **Ethereal Inbox**: Used as the default fake SMTP sandbox. A real SMTP provider can be used by inserting SMTP host and credentials into the `Sender` table.
