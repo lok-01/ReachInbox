@@ -18,6 +18,12 @@ interface FormState {
   hourlyLimit: string;
 }
 
+interface AttachmentInfo {
+  name: string;
+  size: string;
+  dataUrl: string;
+}
+
 const DEFAULT_FORM: FormState = {
   subject: '',
   senderId: '',
@@ -38,6 +44,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
   const [error, setError] = useState<string | null>(null);
   const [creatingEthereal, setCreatingEthereal] = useState(false);
   const [sendLaterOpen, setSendLaterOpen] = useState(false);
+  const [attachments, setAttachments] = useState<AttachmentInfo[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
@@ -161,10 +168,15 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      const sizeStr = `${sizeMB} MB`;
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        format('insertImage', base64);
+        setAttachments((prev) => [
+          ...prev,
+          { name: file.name, size: sizeStr, dataUrl: base64 }
+        ]);
       };
       reader.readAsDataURL(file);
     }
@@ -185,10 +197,20 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
       return;
     }
 
-    const bodyContent = editorRef.current?.innerHTML || '';
+    let bodyContent = editorRef.current?.innerHTML || '';
     if (!bodyContent.replace(/<[^>]*>/g, '').trim()) {
       setError('Email body content cannot be empty.');
       return;
+    }
+
+    // Append attachments as inline references inside body HTML for storage
+    if (attachments.length > 0) {
+      let attachmentTags = '';
+      attachments.forEach((att) => {
+        // Embed hidden attachment tags so they can be parsed out dynamically in details pane
+        attachmentTags += `<img class="email-attachment-file" src="${att.dataUrl}" alt="${att.name}" data-filename="${att.name}" data-filesize="${att.size}" style="display:none;" />`;
+      });
+      bodyContent += `\n${attachmentTags}`;
     }
 
     setSubmitting(true);
@@ -226,6 +248,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
     setFile(null);
     setParsedEmails([]);
     setEmailInput('');
+    setAttachments([]);
     setError(null);
     setSendLaterOpen(false);
     if (editorRef.current) {
@@ -437,7 +460,7 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
             </div>
           </div>
 
-          {/* Email Body & Text Area Editor (Mock Rich Toolbar) */}
+          {/* Email Body & Text Area Editor */}
           <div className="flex-1 flex flex-col min-h-[300px] border border-slate-100 rounded-lg overflow-hidden mt-2 bg-slate-50/30">
             {/* Real contentEditable Rich Text Area */}
             <div
@@ -447,6 +470,33 @@ const ComposeModal: React.FC<ComposeModalProps> = ({ isOpen, onClose, onSuccess 
               className="flex-1 p-4 bg-transparent text-sm text-slate-700 placeholder:text-slate-300 focus:outline-none overflow-y-auto select-text font-sans"
               style={{ minHeight: '220px' }}
             />
+
+            {/* Render Uploaded Attachment Preview Cards at the bottom of the editor */}
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-4 p-4 bg-white border-t border-slate-100 select-none">
+                {attachments.map((att, idx) => (
+                  <div
+                    key={idx}
+                    className="w-40 border border-slate-200 bg-slate-50/50 rounded-xl overflow-hidden shadow-sm flex flex-col relative group animate-fade-in"
+                  >
+                    <img src={att.dataUrl} alt={att.name} className="h-20 w-full object-cover bg-slate-100" />
+                    <div className="p-2 bg-white flex flex-col gap-0.5">
+                      <span className="text-[10px] font-bold text-slate-800 truncate" title={att.name}>
+                        {att.name}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-semibold">{att.size}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-1.5 right-1.5 p-1 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Custom Rich Formatting Toolbar (Matches screenshot editor toolbar exactly) */}
             <div className="flex items-center justify-between border-t border-slate-100 bg-white px-4 py-2 select-none">

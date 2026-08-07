@@ -22,6 +22,31 @@ function formatDetailDate(dateStr?: string): string {
   });
 }
 
+interface AttachmentInfo {
+  name: string;
+  size: string;
+  dataUrl: string;
+}
+
+function parseAttachmentsFromBody(html?: string): AttachmentInfo[] {
+  if (!html) return [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const imgs = doc.querySelectorAll('.email-attachment-file');
+  
+  const attachmentsList: AttachmentInfo[] = [];
+  imgs.forEach((img, idx) => {
+    const src = img.getAttribute('src') || '';
+    if (!src) return;
+    const name = img.getAttribute('data-filename') || `Attachment_Image_${idx + 1}.png`;
+    const size = img.getAttribute('data-filesize') || '1.2 MB';
+    if (!attachmentsList.some(att => att.dataUrl === src)) {
+      attachmentsList.push({ name, size, dataUrl: src });
+    }
+  });
+  return attachmentsList;
+}
+
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('scheduled');
@@ -406,9 +431,31 @@ const Dashboard: React.FC = () => {
                   <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Message Body</span>
                   <div
                     className="flex-1 bg-white border border-slate-100 rounded-xl p-6 shadow-sm text-sm text-slate-700 leading-relaxed font-sans overflow-auto select-text select-all"
-                    dangerouslySetInnerHTML={{ __html: selectedJob.body || 'No message content' }}
+                    dangerouslySetInnerHTML={{ __html: selectedJob.body ? selectedJob.body.replace(/<img[^>]*class="email-attachment-file"[^>]*>/g, '') : 'No message content' }}
                   />
                 </div>
+
+                {/* Render extracted attachments at the bottom */}
+                {(() => {
+                  const extracted = parseAttachmentsFromBody(selectedJob.body);
+                  if (extracted.length === 0) return null;
+                  return (
+                    <div className="flex flex-col gap-2 animate-fade-in">
+                      <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">Attachments ({extracted.length})</span>
+                      <div className="flex flex-wrap gap-4">
+                        {extracted.map((att, idx) => (
+                          <div key={idx} className="w-40 border border-slate-200 bg-slate-50/50 rounded-xl overflow-hidden shadow-sm flex flex-col">
+                            <img src={att.dataUrl} alt={att.name} className="h-20 w-full object-cover bg-slate-100" />
+                            <div className="p-2 bg-white flex flex-col gap-0.5">
+                              <span className="text-[10px] font-bold text-slate-800 truncate" title={att.name}>{att.name}</span>
+                              <span className="text-[9px] text-slate-400 font-semibold">{att.size}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Job Info Grid metadata */}
                 <div className="flex flex-col gap-3">
