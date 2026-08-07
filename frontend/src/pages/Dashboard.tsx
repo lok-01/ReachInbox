@@ -318,6 +318,7 @@ const Dashboard: React.FC = () => {
             onClick={() => {
               setActiveTab('overview');
               setSelectedJob(null);
+              setComposeOpen(false);
             }}
             className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               activeTab === 'overview' && !composeOpen
@@ -335,6 +336,7 @@ const Dashboard: React.FC = () => {
             onClick={() => {
               setActiveTab('scheduled');
               setSelectedJob(null);
+              setComposeOpen(false);
             }}
             className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               activeTab === 'scheduled' && !composeOpen
@@ -355,6 +357,7 @@ const Dashboard: React.FC = () => {
             onClick={() => {
               setActiveTab('sent');
               setSelectedJob(null);
+              setComposeOpen(false);
             }}
             className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
               activeTab === 'sent' && !composeOpen
